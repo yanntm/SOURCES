@@ -3,10 +3,10 @@
 ############################################################################################
 
 ### Global Makefile variables ###
-CC := ./contrib/colorgcc -c
-CPP := ./contrib/colorg++ -c 
-LD := ./contrib/colorgcc
-LDPP := ./contrib/colorg++
+LD := $(CC)
+LDPP := $(CXX)
+CC := $(CC) -c
+CPP := $(CXX) -c 
 RM := rm -f
 RMDIR := rm -rf
 MKDIR := mkdir -p
@@ -16,15 +16,15 @@ LEXPP := flex++
 YACC := byacc -d
 YACCPP := byacc -d
 LEMON := ./bin/lemon
-AR := ar rcs
+AR := $(AR) rcs
 
 ### The following variables can be overridden 
 ### by defining them as environment variables.
-# CFLAGS ?= -g -DGLIBCXX_DEBUG
-CFLAGS ?= -O2 
+CFLAGS ?= -g -DGLIBCXX_DEBUG
+# CFLAGS ?= -O2 
 CPPFLAGS ?= $(CFLAGS)
-LDFLAGS ?= -O2
-# LDFLAGS ?= -g
+# LDFLAGS ?= -O2
+LDFLAGS ?= -g
 INCLUDES ?= 
 LEXFLAGS ?=
 YACCFLAGS ?=
@@ -32,7 +32,7 @@ LEXPPFLAGS ?=
 YACCPPFLAGS ?=
 ARFLAGS :=
 UIL ?= /usr/bin/uil
-ENABLE_Cxx14 ?= -std=c++17
+ENABLE_Cxx14 ?= -std=c++14
 
 # External libraries
 FLEX-INCLUDE :=
@@ -69,7 +69,7 @@ ifeq ($(UNAME_S),Darwin)
    MOTIF-INCLUDE := -I/usr/OpenMotif/include
    MOTIF-LIB := -L/usr/OpenMotif/lib
    UIL := /usr/OpenMotif/bin/uil
-   FLEX-LIB :=  -L/usr/local/opt/flex/lib
+   FLEX-LIB := 
    OPENGL-LIB := -lgl -lglu -lglut
    CC := gcc -g -c -std=c99
    CPP := g++ -g -c -std=c++14 -Wno-unused-local-typedef
@@ -162,31 +162,40 @@ endif
 #   HAS_LP_SOLVE_LIB := 1
 # endif
 
+LP_SOLVE_LIB_0 := $(IDIR)/include/lp_lib.h
 LP_SOLVE_LIB_1 := /usr/include/lpsolve/lp_lib.h
 LP_SOLVE_LIB_2 := /usr/local/include/lp_lib.h
 LP_SOLVE_LIB_3 := /usr/local/include/lpsolve/lp_lib.h
-ifeq ($(wildcard $(LP_SOLVE_LIB_1)),)
-  ifeq ($(wildcard $(LP_SOLVE_LIB_2)),)
-    ifeq ($(wildcard $(LP_SOLVE_LIB_3)),)
-      $(warning "The lp-solve package is not installed. Some packages will not be compiled.")
-    else
-      HAS_LP_SOLVE_LIB := 1
-      LINK_LP_SOLVE_LIB := -L/usr/local/lib -llpsolve55
-      INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1 -I/usr/local/include/lpsolve/
-    endif
+ifeq ($(wildcard $(LP_SOLVE_LIB_0)),)
+  ifeq ($(wildcard $(LP_SOLVE_LIB_1)),)
+  	ifeq ($(wildcard $(LP_SOLVE_LIB_2)),)
+    	ifeq ($(wildcard $(LP_SOLVE_LIB_3)),)
+    		$(warning "The lp-solve package is not installed. Some packages will not be compiled.")
+      	else
+      		HAS_LP_SOLVE_LIB := 1
+      		LINK_LP_SOLVE_LIB := -L/usr/local/lib -llpsolve55
+      		INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1 -I/usr/local/include/lpsolve/
+    	endif
+  	else
+    	HAS_LP_SOLVE_LIB := 1
+    	LINK_LP_SOLVE_LIB := -L/usr/local/lib -llpsolve55
+    	INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1
+  	endif
   else
     HAS_LP_SOLVE_LIB := 1
-    LINK_LP_SOLVE_LIB := -L/usr/local/lib -llpsolve55
-    INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1
+    LINK_LP_SOLVE_LIB := -L/usr/lib64 -L/usr/lib/lp_solve/ -llpsolve55 -ldl 
+    INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1 -I/usr/include/lpsolve/
   endif
 else
   HAS_LP_SOLVE_LIB := 1
-  LINK_LP_SOLVE_LIB := -L/usr/lib64 -L/usr/lib/lp_solve/ -llpsolve55 -ldl 
-  INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1 -I/usr/include/lpsolve/
+  LINK_LP_SOLVE_LIB := -L$(IDIR)/lib -llpsolve55
+  INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1 -I$(IDIR)/include/
 endif
 
+GMP_LIBRARY_0 := $(IDIR)/include/gmpxx.h
 GMP_LIBRARY_1 := /usr/include/gmpxx.h
 GMP_LIBRARY_2 := /usr/local/include/gmpxx.h
+ifeq ($(wildcard $(GMP_LIBRARY_0)),)
 ifeq ($(wildcard $(GMP_LIBRARY_1)),)
   ifeq ($(wildcard $(GMP_LIBRARY_2)),)
     $(warning "The GMP library is not installed. Some packages will not be compiled.")
@@ -198,6 +207,11 @@ ifeq ($(wildcard $(GMP_LIBRARY_1)),)
 else
   HAS_GMP_LIBRARY := 1
   LINK_GMP_LIBRARY := -L/usr/lib -lgmp -lgmpxx
+  INCLUDE_GMP_LIBRARY := -DHAS_GMP_LIBRARY=1
+endif
+else
+  HAS_GMP_LIBRARY := 1
+  LINK_GMP_LIBRARY := -L$(IDIR)/lib -lgmpxx -lgmp
   INCLUDE_GMP_LIBRARY := -DHAS_GMP_LIBRARY=1
 endif
 
@@ -744,7 +758,7 @@ WNESRG_SOURCES := WN/SOURCE/SHARED/service.c \
 
 RGMEDD_CFLAGS := $(call generate_WN_FLAGS,TOOL_RGMEDD,RGMEDD) \
 				 $(FLEX-INCLUDE) 
-RGMEDD_CPPFLAGS := $(RGMEDD_CFLAGS) -I/usr/local/include
+RGMEDD_CPPFLAGS := $(CPPFLAGS) $(RGMEDD_CFLAGS) -I/usr/local/include
 RGMEDD_LDFLAGS := $(LDFLAGS) -L/usr/local/lib -lmeddly $(FLEX-LIB)
 RGMEDD_SOURCES := WN/SOURCE/SHARED/service.c \
 				  WN/SOURCE/SHARED/ealloc.c \
@@ -810,7 +824,7 @@ RGMEDD2_CPPFLAGS := $(CPPFLAGS) $(ENABLE_Cxx14) -Wno-deprecated-register \
                     $(RGMEDD2_CFLAGS) -I/usr/local/include 
                     
                     # -D_GLIBCXX_DEBUG=1
-RGMEDD2_LDFLAGS := -L/usr/local/lib $(LDFLAGS) $(FLEX-LIB) $(LINK_GMP_LIBRARY) -lmeddly 
+RGMEDD2_LDFLAGS := $(LDFLAGS) $(FLEX-LIB) -lmeddly $(LINK_GMP_LIBRARY) --static 
 RGMEDD2_SOURCES := WN/SOURCE/SHARED/service.c \
 				   WN/SOURCE/SHARED/ealloc.c \
 				   WN/SOURCE/SHARED/token.c \
@@ -2280,6 +2294,7 @@ $(CCOBJECTS): $(OBJDIR)/%.o: $$(call rmprefix,%.cc)
 	@$(eval $@_INCLUDES := $(call getvar,INCLUDES,$($@_TARGET),$^))
 	@echo "  [C++] " $<
 	@$(MKDIR) $(dir $@)
+	@echo "@$($@_CPP) $($@_CPPFLAGS) $($($@_INCLUDES)) -MMD -MF $(@:%.o=%.d) -o $@  $<"
 	@$($@_CPP) $($@_CPPFLAGS) $($($@_INCLUDES)) -MMD -MF $(@:%.o=%.d) -o $@  $< 
 
 ### General .cpp compilation rule ###
@@ -2291,6 +2306,7 @@ $(CPPOBJECTS): $(OBJDIR)/%.o: $$(call rmprefix,%.cpp)
 	@$(eval $@_INCLUDES := $(call getvar,INCLUDES,$($@_TARGET),$^))
 	@echo "  [C++] " $<
 	@$(MKDIR) $(dir $@)
+	@echo "@$($@_CPP) $($@_CPPFLAGS) $($@_INCLUDES) -MMD -MF $(@:%.o=%.d) -o $@  $<"
 	@$($@_CPP) $($@_CPPFLAGS) $($@_INCLUDES) -MMD -MF $(@:%.o=%.d) -o $@  $< 
 
 ### Compilation of C++ files generated by Yacc/Lex/Lemon in C++ mode ###
@@ -2320,8 +2336,8 @@ $(YACCDERIVEDSOURCES): $(OBJDIR)/%.y.c: $$(call rmprefix,%.y)
 	@$(eval $@_TARGET := $(call get_target,$*))
 	@$(eval $@_YACC := $(call getvar,YACC,$($@_TARGET),$^))
 	@$(eval $@_YACCFLAGS := $(call getvar,YACCFLAGS,$($@_TARGET),$^))
-	@echo "  [YACC]" $<
-	@$(MKDIR) $(dir $@)
+	@echo "  [YACC] ($@_YACC) $($@_YACCFLAGS) -o $@ $^" $<
+	@$(MKDIR) $(dir $@)	
 	@$($@_YACC) $($@_YACCFLAGS) -o $@ $^
 
 $(YACCDERIVEDHEADERS): %:
@@ -2393,6 +2409,7 @@ $(BINARIES): $(BINDIR)/% : $$(call src2obj, $$($$(@F)_SOURCES),$$*) $$($$*_DEPEN
 	@$(eval $@_LDFLAGS := $(call getvar,LDFLAGS,$($@_TARGET),$^))
 	@echo "  [LD]  " $@
 	@$(MKDIR) $(dir $@)
+	@echo "@$($@_LD) -o $@ $(filter %.o,$^) $($@_LDFLAGS)"
 	@$($@_LD) -o $@ $(filter %.o,$^) $($@_LDFLAGS)
 
 ### General linking rules for static libraries (.a) ###
