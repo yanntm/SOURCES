@@ -20,13 +20,13 @@ RG2RRG_SOURCES = rg2rrg.cpp function.cpp general.cpp
 # set the include path found by configure
 RG2RRG_LDFLAGS = $(all_libraries) -L../../../../../$(PATHL)/2bin/lib/
 
-RG2RRG_LDADD = -lgspnMCESRG -lm -lfl -lglpk
+RG2RRG_LDADD = -lgspnMCESRG -lm  -lglpk
 MDWN2WN_SOURCES = mdwn2wn.cpp functionmdwn.cpp general.cpp
 
 GDTMC_SOURCES = GenDTMC.cpp functionGenDTMC.cpp general.cpp
 GDTMC_LDFLAGS = $(all_libraries) -L../../../../../$(PATHL)/2bin/lib/ 
 
-GDTMC_LDADD = -lgspnMCESRG -lm -lfl -lglpk
+GDTMC_LDADD = -lgspnMCESRG -lm  -lglpk
 
 PARSER_SOURCES= parser.cpp general.cpp
 PARSER_LDFLAGS= $(all_libraries) 

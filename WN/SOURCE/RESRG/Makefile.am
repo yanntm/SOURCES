@@ -9,7 +9,7 @@ INCLUDES= $(all_includes) -I../../../INCLUDE '-D"const.h"="const.h"' \
 
 # the library search path.
 ESRG_CTMC_LDFLAGS = $(all_libraries)  -L../../../../../$(PATHL)/2bin/lib/
-ESRG_CTMC_LDADD = -lgspnMCESRG -lm -lfl
+ESRG_CTMC_LDADD = -lgspnMCESRG -lm 
 ESRG_CTMC_CFLAGS= -Wall 
 noinst_HEADERS = class.h macro.h
 

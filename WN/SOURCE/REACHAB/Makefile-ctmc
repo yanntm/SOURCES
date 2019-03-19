@@ -10,7 +10,7 @@ LIBSPOT= /root/SPOT/greatspn/i686_R2.4.21-0.13mdk/2bin/lib
 
 COMP   = $(CC) -g
 CFLAG  = -o
-LFLAGS = -lgspnSSP -lm -lfl 
+LFLAGS = -lgspnSSP -lm  
 YACC   = bison -v -p Prop
 YACFLAG= -d
 LEX    = flex -i -PProp

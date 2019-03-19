@@ -15,7 +15,7 @@ INCGREAT =../../INCLUDE/
 #commands
 COMP   = $(CC) -O3
 CFLAG  = -o 
-LFLAGS = -lgspnMCDSRG -lm -lfl -lglib-2.0  
+LFLAGS = -lgspnMCDSRG -lm  -lglib-2.0  
 LIBFLAG =-L$(LIB) 
 #-L$(GLIB) 
 # -L$(FLEXLIB)

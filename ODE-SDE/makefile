@@ -1,5 +1,5 @@
 
-OPTION = -O3 -std=c++11 -lfl  -lm
+OPTION = -O3 -std=c++11   -lm
 OPTIONW = -Wall
 
 CC = gcc
