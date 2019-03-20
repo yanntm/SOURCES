@@ -820,9 +820,9 @@ $(OBJDIR)/RGMEDD/WN/SOURCE/AUTOMA/AutoParser.yy.o: $(OBJDIR)/RGMEDD/WN/SOURCE/AU
 
 RGMEDD2_CFLAGS := $(CFLAGS) $(call generate_WN_FLAGS,TOOL_RGMEDD2,RGMEDD2) \
 				          $(FLEX-INCLUDE) 
-RGMEDD2_CPPFLAGS := $(CPPFLAGS) $(ENABLE_Cxx14) -Wno-deprecated-register \
-                    -I/usr/local/include $(INCLUDE_GMP_LIBRARY) \
-                    $(RGMEDD2_CFLAGS) -I/usr/local/include 
+RGMEDD2_CPPFLAGS := $(CPPFLAGS) $(ENABLE_Cxx14) \
+                    $(INCLUDE_GMP_LIBRARY) \
+                    $(RGMEDD2_CFLAGS)  
                     
                     # -D_GLIBCXX_DEBUG=1
 RGMEDD2_LDFLAGS := $(LDFLAGS) $(FLEX-LIB) -lmeddly $(LINK_GMP_LIBRARY) --static 
