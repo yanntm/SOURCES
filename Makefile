@@ -2,6 +2,10 @@
 ###                   New Makefile for the GreatSPN project.                             ###
 ############################################################################################
 
+
+PATH  := $(PWD)/bin:$(PWD)/../../usr/local/bin:$(PATH)
+SHELL := env PATH=$(PATH) /bin/bash
+
 ### Global Makefile variables ###
 LD := $(CC)
 LDPP := $(CXX)
