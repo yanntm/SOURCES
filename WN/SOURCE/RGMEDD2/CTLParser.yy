@@ -38,7 +38,7 @@ void yyerror(const char *str) {
 }
  
 int yylex(void){
-    int i = lexer->yylex(); 
+    int i = lexer->mmlex(); 
     return i;
 }
 extern int yyparse(void);
