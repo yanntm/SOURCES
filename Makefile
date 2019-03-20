@@ -2337,7 +2337,6 @@ $(YACCDERIVEDSOURCES): $(OBJDIR)/%.y.c: $$(call rmprefix,%.y)
 	@$(eval $@_TARGET := $(call get_target,$*))
 	@$(eval $@_YACC := $(call getvar,YACC,$($@_TARGET),$^))
 	@$(eval $@_YACCFLAGS := $(call getvar,YACCFLAGS,$($@_TARGET),$^))
-	@echo "  [YACC] ($@_YACC) $($@_YACCFLAGS) -o $@ $^" $<
 	@$(MKDIR) $(dir $@)	
 	@$($@_YACC) $($@_YACCFLAGS) -o $@ $^
 
