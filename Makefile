@@ -3,8 +3,12 @@
 ############################################################################################
 
 
-PATH  := $(PWD)/bin:$(PWD)/../../usr/local/bin:$(PATH)
-SHELL := env PATH=$(PATH) /bin/bash
+#PATH  := $(PWD)/bin:$(PWD)/../../usr/local/bin:$(PATH)
+#SHELL := env PATH="$(PATH)" /bin/bash
+
+SHELL := /bin/bash
+PATH := $(PWD)/bin:$(PWD)/../../usr/local/bin:$(PATH)
+
 
 ### Global Makefile variables ###
 LD := $(CC)
