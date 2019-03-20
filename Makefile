@@ -12,8 +12,8 @@ RM := rm -f
 RMDIR := rm -rf
 MKDIR := mkdir -p
 CPDIR := cp -r
-LEX := flex
-LEXPP := flex -+
+LEX := $(BYACCDIR)flex
+LEXPP := $(BYACCDIR)flex -+
 YACC := $(BYACCDIR)byacc -d
 YACCPP := $(BYACCDIR)byacc -d
 LEMON := ./bin/lemon
@@ -804,8 +804,8 @@ RGMEDD_SOURCES := WN/SOURCE/SHARED/service.c \
 # Modify the lexer and the parser generators used by the
 RGMEDD_LEX_WN/SOURCE/AUTOMA/AutoLexer.l = $(LEX) -P kk --header-file=$(@:.c=.h)
 RGMEDD_YACCPP_WN/SOURCE/AUTOMA/AutoParser.yy := $(BYACCDIR)byacc -v -p kk -d
-RGMEDD_YACCPP_WN/SOURCE/CTL/CTLParser.yy := $(BYACCDIR)byacc -p mm -v -d
-RGMEDD_LEXPP_WN/SOURCE/CTL/CTLLexer.ll = $(LEXPP) -+ --header-file=$(@:.cpp=.h)
+RGMEDD_YACCPP_WN/SOURCE/CTL/CTLParser.yy := $(BYACCDIR)byacc -v -p mm -d
+RGMEDD_LEXPP_WN/SOURCE/CTL/CTLLexer.ll = $(LEXPP) --header-file=$(@:.cpp=.h)
 RGMEDD_LD := $(LDPP)
 
 $(OBJDIR)/RGMEDD/WN/SOURCE/CTL/CTLParser.yy.o: $(OBJDIR)/RGMEDD/WN/SOURCE/CTL/CTLLexer.ll.cpp
