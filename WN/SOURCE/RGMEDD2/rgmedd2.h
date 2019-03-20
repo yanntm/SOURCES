@@ -560,7 +560,9 @@ public:
             return false;
         else {
             plmark = it->getAssignments();
-            fEV->evaluate((*indexrs), plmark, idm);
+            long int cpy ;
+            fEV->evaluate((*indexrs), plmark, cpy);
+            idm = cpy; // NB with reduction of size/overflow possible
             memcpy(vmark, plmark, nvar * sizeof(int));
             ++(*it);
             return true;
