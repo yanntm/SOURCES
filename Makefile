@@ -3,13 +3,6 @@
 ############################################################################################
 
 
-#PATH  := $(PWD)/bin:$(PWD)/../../usr/local/bin:$(PATH)
-#SHELL := env PATH="$(PATH)" /bin/bash
-
-SHELL := /bin/bash
-PATH := $(PWD)/bin:$(PWD)/../../usr/local/bin:$(PATH)
-
-
 ### Global Makefile variables ###
 LD := $(CC)
 LDPP := $(CXX)
@@ -21,8 +14,8 @@ MKDIR := mkdir -p
 CPDIR := cp -r
 LEX := flex
 LEXPP := flex++
-YACC := byacc -d
-YACCPP := byacc -d
+YACC := $(BYACCDIR)byacc -d
+YACCPP := $(BYACCDIR)byacc -d
 LEMON := ./bin/lemon
 AR := $(AR) rcs
 
@@ -810,8 +803,8 @@ RGMEDD_SOURCES := WN/SOURCE/SHARED/service.c \
 
 # Modify the lexer and the parser generators used by the
 RGMEDD_LEX_WN/SOURCE/AUTOMA/AutoLexer.l = $(LEX) -P kk --header-file=$(@:.c=.h)
-RGMEDD_YACCPP_WN/SOURCE/AUTOMA/AutoParser.yy := byacc -v -p kk -d
-RGMEDD_YACCPP_WN/SOURCE/CTL/CTLParser.yy := byacc -p mm -v -d
+RGMEDD_YACCPP_WN/SOURCE/AUTOMA/AutoParser.yy := $(BYACCDIR)byacc -v -p kk -d
+RGMEDD_YACCPP_WN/SOURCE/CTL/CTLParser.yy := $(BYACCDIR)byacc -p mm -v -d
 RGMEDD_LEXPP_WN/SOURCE/CTL/CTLLexer.ll = $(LEXPP) -+ --header-file=$(@:.cpp=.h)
 RGMEDD_LD := $(LDPP)
 
@@ -877,8 +870,8 @@ RGMEDD2_SOURCES := WN/SOURCE/SHARED/service.c \
 
 # Modify the lexer and the parser generators used by the
 # RGMEDD2_LEX_WN/SOURCE/AUTOMA/AutoLexer.l = $(LEX) -P kk --header-file=$(@:.c=.h)
-# RGMEDD2_YACCPP_WN/SOURCE/AUTOMA/AutoParser.yy := byacc -v -p kk -d
-RGMEDD2_YACCPP_WN/SOURCE/RGMEDD2/CTLParser.yy := byacc -p mm -v -d
+# RGMEDD2_YACCPP_WN/SOURCE/AUTOMA/AutoParser.yy := $(BYACCDIR)byacc -v -p kk -d
+RGMEDD2_YACCPP_WN/SOURCE/RGMEDD2/CTLParser.yy := $(BYACCDIR)byacc -p mm -v -d
 RGMEDD2_LEXPP_WN/SOURCE/RGMEDD2/CTLLexer.ll = $(LEXPP) -+ --header-file=$(@:.cpp=.h)
 RGMEDD2_LD := $(LDPP) -shared-libgcc
 
@@ -1051,7 +1044,7 @@ PN2ODE_SOURCES := WN/SOURCE/SHARED/service.c \
 				  ODE-SDE/ObjectiveFunction.cpp
 				  
 # Fix for byacc: use "-b readingObjectiveFunction" argument
-PN2ODE_YACCPP_ODE-SDE/readingObjectiveFunction.yy = byacc -p mm -v -d 
+PN2ODE_YACCPP_ODE-SDE/readingObjectiveFunction.yy = $(BYACCDIR)byacc -p mm -v -d 
 PN2ODE_LEXPP_ODE-SDE/readingObjectiveFunction.ll = $(LEXPP) -+ --header-file=$(@:.cpp=.hpp)				  
 				  
 $(OBJDIR)/PN2ODE/ODE-SDE/readingObjectiveFunction.yy.o: $(OBJDIR)/PN2ODE/ODE-SDE/readingObjectiveFunction.ll.cpp
