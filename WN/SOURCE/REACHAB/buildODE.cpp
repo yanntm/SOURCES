@@ -12,7 +12,6 @@
 #include <math.h>
 #include<map>
 #include<set>
-#include <sys/resource.h>
 #include <utility>
 #include <limits.h>
 #include <vector>
@@ -792,9 +791,9 @@ void build_ODE(ofstream &out, std::string path, std::string net)
     cout << "                 End encoding" << endl;
     cout << "------------------------------------------------\n\n" << endl;
 
-    int who1 = RUSAGE_SELF;
-    struct rusage usage1;
-    getrusage(who1, &usage1);
+    //int who1 = RUSAGE_SELF;
+    //struct rusage usage1;
+    //getrusage(who1, &usage1);
 
 
     endGlobal = clock();
@@ -804,7 +803,7 @@ void build_ODE(ofstream &out, std::string path, std::string net)
 
     cout << "===================== INFO =====================" << endl;
     cout << " Total Time: " << setprecision(7) << timeGlobal << " sec" << endl;
-    cout << " Total Used Memory: " << usage1.ru_maxrss << "KB" << endl;
+    //cout << " Total Used Memory: " << usage1.ru_maxrss << "KB" << endl;
     cout << " Output saved in: " << net << ".cpp" << "\n";
     cout << "================================================\n" << endl;
 }/* End build_ODE */
@@ -972,9 +971,9 @@ void build_ODEGPU(std::string net)
     cout << "                 End encoding" << endl;
     cout << "------------------------------------------------\n\n" << endl;
 
-    int who1 = RUSAGE_SELF;
-    struct rusage usage1;
-    getrusage(who1, &usage1);
+    //int who1 = RUSAGE_SELF;
+    //struct rusage usage1;
+    //getrusage(who1, &usage1);
 
 
     endGlobal = clock();
@@ -984,7 +983,7 @@ void build_ODEGPU(std::string net)
 
     cout << "===================== INFO =====================" << endl;
     cout << " Total Time: " << setprecision(7) << timeGlobal << " sec" << endl;
-    cout << " Total Used Memory: " << usage1.ru_maxrss << "KB" << endl;
+    // cout << " Total Used Memory: " << usage1.ru_maxrss << "KB" << endl;
     cout << "================================================\n" << endl;
 
 
@@ -1209,9 +1208,9 @@ void build_ODER(ofstream &out, std::string net)
     cout << "                 End encoding" << endl;
     cout << "------------------------------------------------\n\n" << endl;
 
-    int who1 = RUSAGE_SELF;
-    struct rusage usage1;
-    getrusage(who1, &usage1);
+//    int who1 = RUSAGE_SELF;
+//    struct rusage usage1;
+//    getrusage(who1, &usage1);
 
 
     endGlobal = clock();
@@ -1221,7 +1220,7 @@ void build_ODER(ofstream &out, std::string net)
 
     cout << "===================== INFO =====================" << endl;
     cout << " Total Time: " << setprecision(7) << timeGlobal << " sec" << endl;
-    cout << " Total Used Memory: " << usage1.ru_maxrss << "KB" << endl;
+//    cout << " Total Used Memory: " << usage1.ru_maxrss << "KB" << endl;
     cout << " Output saved in: " << net << "\n";
     cout << "================================================\n" << endl;
 
@@ -1726,9 +1725,9 @@ void build_ODEOPT(ofstream &out, std::string net, std::string trans_path, std::s
     cout << "                 End encoding" << endl;
     cout << "------------------------------------------------\n\n" << endl;
 
-    int who1 = RUSAGE_SELF;
-    struct rusage usage1;
-    getrusage(who1, &usage1);
+//    int who1 = RUSAGE_SELF;
+//    struct rusage usage1;
+//    getrusage(who1, &usage1);
 
 
     endGlobal = clock();
@@ -1738,7 +1737,7 @@ void build_ODEOPT(ofstream &out, std::string net, std::string trans_path, std::s
 
     cout << "===================== INFO =====================" << endl;
     cout << " Total Time: " << setprecision(7) << timeGlobal << " sec" << endl;
-    cout << " Total Used Memory: " << usage1.ru_maxrss << "KB" << endl;
+//    cout << " Total Used Memory: " << usage1.ru_maxrss << "KB" << endl;
     cout << " Output saved in: " << net << "\n";
     cout << "================================================\n" << endl;
 
@@ -1898,9 +1897,9 @@ void build_ODEM(ofstream &out, std::string net)
     cout << "                 End encoding" << endl;
     cout << "------------------------------------------------\n\n" << endl;
 
-    int who1 = RUSAGE_SELF;
-    struct rusage usage1;
-    getrusage(who1, &usage1);
+    //int who1 = RUSAGE_SELF;
+    //struct rusage usage1;
+    //getrusage(who1, &usage1);
 
 
     endGlobal = clock();
@@ -1910,7 +1909,7 @@ void build_ODEM(ofstream &out, std::string net)
 
     cout << "===================== INFO =====================" << endl;
     cout << " Total Time: " << setprecision(7) << timeGlobal << " sec" << endl;
-    cout << " Total Used Memory: " << usage1.ru_maxrss << "KB" << endl;
+    // cout << " Total Used Memory: " << usage1.ru_maxrss << "KB" << endl;
     cout << " Output saved in: " << net << ".m\n";
     cout << "================================================\n" << endl;
 
