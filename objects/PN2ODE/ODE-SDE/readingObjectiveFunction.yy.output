@@ -1,0 +1,337 @@
+   0  $accept : objfunc $end
+
+   1  objfunc : com ENDLINE
+   2          | exp ENDLINE
+
+   3  exp : exp op fun
+   4      | fun
+   5      | base
+   6      | exp op base
+   7      | composite
+   8      | exp op composite
+
+   9  fun : funct bracketO exp bracketC
+  10      | bracketO exp bracketC
+
+  11  op : PLUS
+  12     | MINUS
+  13     | MULT
+  14     | DIV
+
+  15  composite : FLOAT PLACE
+  16            | MINUS FLOAT PLACE
+
+  17  base : FLOAT
+  18       | PLACE
+
+  19  bracketO : BOPEN
+
+  20  bracketC : BCLOSE
+
+  21  funct : FUNCT
+
+  22  com : STRING
+
+state 0
+	$accept : . objfunc $end  (0)
+
+	FLOAT  shift 1
+	PLACE  shift 2
+	MINUS  shift 3
+	FUNCT  shift 4
+	BOPEN  shift 5
+	STRING  shift 6
+	.  error
+
+	objfunc  goto 7
+	fun  goto 8
+	exp  goto 9
+	com  goto 10
+	base  goto 11
+	composite  goto 12
+	bracketO  goto 13
+	funct  goto 14
+
+
+state 1
+	composite : FLOAT . PLACE  (15)
+	base : FLOAT .  (17)
+
+	PLACE  shift 15
+	PLUS  reduce 17
+	MINUS  reduce 17
+	MULT  reduce 17
+	DIV  reduce 17
+	BCLOSE  reduce 17
+	ENDLINE  reduce 17
+
+
+state 2
+	base : PLACE .  (18)
+
+	.  reduce 18
+
+
+state 3
+	composite : MINUS . FLOAT PLACE  (16)
+
+	FLOAT  shift 16
+	.  error
+
+
+state 4
+	funct : FUNCT .  (21)
+
+	.  reduce 21
+
+
+state 5
+	bracketO : BOPEN .  (19)
+
+	.  reduce 19
+
+
+state 6
+	com : STRING .  (22)
+
+	.  reduce 22
+
+
+state 7
+	$accept : objfunc . $end  (0)
+
+	$end  accept
+
+
+state 8
+	exp : fun .  (4)
+
+	.  reduce 4
+
+
+state 9
+	objfunc : exp . ENDLINE  (2)
+	exp : exp . op fun  (3)
+	exp : exp . op base  (6)
+	exp : exp . op composite  (8)
+
+	PLUS  shift 17
+	MINUS  shift 18
+	MULT  shift 19
+	DIV  shift 20
+	ENDLINE  shift 21
+	.  error
+
+	op  goto 22
+
+
+state 10
+	objfunc : com . ENDLINE  (1)
+
+	ENDLINE  shift 23
+	.  error
+
+
+state 11
+	exp : base .  (5)
+
+	.  reduce 5
+
+
+state 12
+	exp : composite .  (7)
+
+	.  reduce 7
+
+
+state 13
+	fun : bracketO . exp bracketC  (10)
+
+	FLOAT  shift 1
+	PLACE  shift 2
+	MINUS  shift 3
+	FUNCT  shift 4
+	BOPEN  shift 5
+	.  error
+
+	fun  goto 8
+	exp  goto 24
+	base  goto 11
+	composite  goto 12
+	bracketO  goto 13
+	funct  goto 14
+
+
+state 14
+	fun : funct . bracketO exp bracketC  (9)
+
+	BOPEN  shift 5
+	.  error
+
+	bracketO  goto 25
+
+
+state 15
+	composite : FLOAT PLACE .  (15)
+
+	.  reduce 15
+
+
+state 16
+	composite : MINUS FLOAT . PLACE  (16)
+
+	PLACE  shift 26
+	.  error
+
+
+state 17
+	op : PLUS .  (11)
+
+	.  reduce 11
+
+
+state 18
+	op : MINUS .  (12)
+
+	.  reduce 12
+
+
+state 19
+	op : MULT .  (13)
+
+	.  reduce 13
+
+
+state 20
+	op : DIV .  (14)
+
+	.  reduce 14
+
+
+state 21
+	objfunc : exp ENDLINE .  (2)
+
+	.  reduce 2
+
+
+state 22
+	exp : exp op . fun  (3)
+	exp : exp op . base  (6)
+	exp : exp op . composite  (8)
+
+	FLOAT  shift 1
+	PLACE  shift 2
+	MINUS  shift 3
+	FUNCT  shift 4
+	BOPEN  shift 5
+	.  error
+
+	fun  goto 27
+	base  goto 28
+	composite  goto 29
+	bracketO  goto 13
+	funct  goto 14
+
+
+state 23
+	objfunc : com ENDLINE .  (1)
+
+	.  reduce 1
+
+
+state 24
+	exp : exp . op fun  (3)
+	exp : exp . op base  (6)
+	exp : exp . op composite  (8)
+	fun : bracketO exp . bracketC  (10)
+
+	PLUS  shift 17
+	MINUS  shift 18
+	MULT  shift 19
+	DIV  shift 20
+	BCLOSE  shift 30
+	.  error
+
+	op  goto 22
+	bracketC  goto 31
+
+
+state 25
+	fun : funct bracketO . exp bracketC  (9)
+
+	FLOAT  shift 1
+	PLACE  shift 2
+	MINUS  shift 3
+	FUNCT  shift 4
+	BOPEN  shift 5
+	.  error
+
+	fun  goto 8
+	exp  goto 32
+	base  goto 11
+	composite  goto 12
+	bracketO  goto 13
+	funct  goto 14
+
+
+state 26
+	composite : MINUS FLOAT PLACE .  (16)
+
+	.  reduce 16
+
+
+state 27
+	exp : exp op fun .  (3)
+
+	.  reduce 3
+
+
+state 28
+	exp : exp op base .  (6)
+
+	.  reduce 6
+
+
+state 29
+	exp : exp op composite .  (8)
+
+	.  reduce 8
+
+
+state 30
+	bracketC : BCLOSE .  (20)
+
+	.  reduce 20
+
+
+state 31
+	fun : bracketO exp bracketC .  (10)
+
+	.  reduce 10
+
+
+state 32
+	exp : exp . op fun  (3)
+	exp : exp . op base  (6)
+	exp : exp . op composite  (8)
+	fun : funct bracketO exp . bracketC  (9)
+
+	PLUS  shift 17
+	MINUS  shift 18
+	MULT  shift 19
+	DIV  shift 20
+	BCLOSE  shift 30
+	.  error
+
+	op  goto 22
+	bracketC  goto 33
+
+
+state 33
+	fun : funct bracketO exp bracketC .  (9)
+
+	.  reduce 9
+
+
+13 terminals, 11 nonterminals
+23 grammar rules, 34 states

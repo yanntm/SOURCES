@@ -1,0 +1,17 @@
+#define WHEN 257
+#define EVER 258
+#define PLACE_NAME 259
+#define COMP_OP 260
+#define INTEGER 261
+#define MARK_PAR 262
+#define ARITHM_OP 263
+#define RATE_PAR 264
+#define EXP 265
+#define ERROR 266
+#define COLON 267
+#define SEMICOLON 268
+#define POINT 269
+#define OPEN 270
+#define CLOSE 271
+#define LOGIC_OP 272
+#define NOT_OP 273
