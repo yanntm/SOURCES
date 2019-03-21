@@ -330,8 +330,8 @@ TARGETS += pinvar tinvar unbound deadlock implp \
 		   gst_stndrd throughput dortmund_sortmark \
 		   showprob showmtx showtpd mark_lp flow_lp disab_lp 
 
-pinvar_SOURCES := gsrc2/pinvar.c
-tinvar_SOURCES := gsrc2/tinvar.c
+pinvar_SOURCES := gsrc2/pinvar.c gsrc2/getline.c
+tinvar_SOURCES := gsrc2/tinvar.c gsrc2/getline.c
 unbound_SOURCES := gsrc2/unbound.c
 deadlock_SOURCES := gsrc2/deadlock.c
 implp_SOURCES := gsrc2/implp.c
@@ -343,7 +343,7 @@ ntrex2_SOURCES := gsrc2/ntrex2.c gsrc2/compact.c
 gre_SOURCES := gsrc2/res_gram.l gsrc2/res_gram.y
 comp_SOURCES := gsrc2/comp_main.c gsrc2/comp_menc.c gsrc2/comp_mark.c \
 				gsrc2/comp_tran.c gsrc2/mdr_gram.l gsrc2/mdr_gram.y
-struct_SOURCES := gsrc2/struct.c
+struct_SOURCES := gsrc2/struct.c gsrc2/getline.c
 grg_prep_SOURCES := gsrc2/grg_prep.c
 gmt_prep_SOURCES := gsrc2/mdr_stndrd.l gsrc2/mdr_stndrd.y
 gst_prep_SOURCES := gsrc2/res_stndrd.l gsrc2/res_stndrd.y

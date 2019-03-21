@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "getline.h"
 #include "const.h"
 
 
@@ -182,7 +183,7 @@ void load_file() {
         if (0 == strcmp(fieldbuf, "*")) {
             bufptr = linebuf;
             bufsz = LINEMAX-1;
-            getline(&bufptr, &bufsz, nfp);
+            getlineMod(&bufptr, &bufsz, nfp);
             printf("Skip line: %s\n", linebuf);
         }
         if (mark < 0) {
