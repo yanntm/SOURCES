@@ -8,7 +8,6 @@
 #include <assert.h>
 #include <fstream>
 #include <iostream>
-#include <sys/resource.h>
 
 extern "C" {
 
