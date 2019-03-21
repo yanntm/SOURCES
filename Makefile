@@ -574,6 +574,7 @@ WNRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				WN/SOURCE/SHARED/common.c \
 				WN/SOURCE/SHARED/enabling.c	\
 				WN/SOURCE/SHARED/fire.c \
+				WN/SOURCE/SHARED/getline.c \
 				WN/SOURCE/SHARED/shared1.c \
 				WN/SOURCE/SHARED/shared2.c \
 				WN/SOURCE/SHARED/outdom.c \
@@ -608,6 +609,7 @@ WNSRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				 WN/SOURCE/SHARED/common.c \
 				 WN/SOURCE/SHARED/enabling.c	\
 				 WN/SOURCE/SHARED/fire.c \
+				 WN/SOURCE/SHARED/getline.c \
 				 WN/SOURCE/SHARED/split.c \
 				 WN/SOURCE/SHARED/group.c \
 				 WN/SOURCE/SHARED/shared1.c \
@@ -646,6 +648,7 @@ MDWNRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				  WN/SOURCE/SHARED/common.c \
 				  WN/SOURCE/SHARED/enabling.c	\
 				  WN/SOURCE/SHARED/fire.c \
+ 				  WN/SOURCE/SHARED/getline.c \
 				  WN/SOURCE/SHARED/shared1.c \
 				  WN/SOURCE/SHARED/shared2.c \
 				  WN/SOURCE/SHARED/outdom.c \
@@ -680,6 +683,7 @@ MDWNSRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				   WN/SOURCE/SHARED/common.c \
 				   WN/SOURCE/SHARED/enabling.c	\
 				   WN/SOURCE/SHARED/fire.c \
+				   WN/SOURCE/SHARED/getline.c \
 				   WN/SOURCE/SHARED/split.c \
 				   WN/SOURCE/SHARED/group.c \
 				   WN/SOURCE/SHARED/shared1.c \
@@ -718,6 +722,7 @@ WNESRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				  WN/SOURCE/SHARED/common.c \
 				  WN/SOURCE/SHARED/enabling.c \
 				  WN/SOURCE/SHARED/fire.c \
+				  WN/SOURCE/SHARED/getline.c \
 				  WN/SOURCE/SHARED/split.c \
 				  WN/SOURCE/SHARED/group.c \
 				  WN/SOURCE/SHARED/shared1.c \
@@ -915,6 +920,7 @@ GSPNRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				  WN/SOURCE/SHARED/common.c \
 				  WN/SOURCE/SHARED/enabling.c	\
 				  WN/SOURCE/SHARED/fire.c \
+				  WN/SOURCE/SHARED/getline.c \
 				  WN/SOURCE/SHARED/split.c \
 				  WN/SOURCE/SHARED/group.c \
 				  WN/SOURCE/SHARED/shared1.c \
@@ -1373,7 +1379,7 @@ endif
 
 
 
-ESRG_CTMC_SOURCES := WN/SOURCE/RESRG/esrg1.cpp WN/SOURCE/RESRG/interface.cpp
+ESRG_CTMC_SOURCES := WN/SOURCE/RESRG/esrg1.cpp WN/SOURCE/RESRG/interface.cpp WN/SOURCE/SHARED/getline.c 
 ESRG_CTMC_DEPENDS := $(LIBDIR)/libgspnMCESRG.a
 ESRG_CTMC_LD := $(LDPP)
 ESRG_CTMC_CPPFLAGS := $(CPPFLAGS) -I../../../INCLUDE -Wall \

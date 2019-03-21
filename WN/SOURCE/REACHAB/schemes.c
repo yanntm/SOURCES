@@ -7,6 +7,7 @@
 #include "../../INCLUDE/fun_ext.h"
 #include "../../INCLUDE/service.h"
 #include "../../INCLUDE/ealloc.h"
+#include "../../INCLUDE/getline.h"
 
 #ifdef SWN
 #ifdef REACHABILITY
@@ -233,9 +234,9 @@ int *op2;
 
 
     fseek(f_cap_fp, *op1, SEEK_SET);
-    getline(&str1, &size_str1, f_cap_fp);
+    getlineMod(&str1, &size_str1, f_cap_fp);
     fseek(f_cap_fp, *op2, SEEK_SET);
-    getline(&str2, &size_str2, f_cap_fp);
+    getlineMod(&str2, &size_str2, f_cap_fp);
     char *str_op1 = str1;
     char *str_op2 = str2;
     val1 = value(&str_op1); str_op1++;
