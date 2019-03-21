@@ -13,8 +13,8 @@
 #define DEBUG
 */
 
-#define PRINT_STATISTICS
 /*
+#define PRINT_STATISTICS
 */
 
 #define EPS 0.00000001 /* The equivalence threshold for "double" */

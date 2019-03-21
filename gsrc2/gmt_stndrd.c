@@ -23,8 +23,8 @@
 
 #endif
 
-#define PRINT_STATISTICS
 /*
+#define PRINT_STATISTICS
 */
 
 
