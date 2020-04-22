@@ -37,7 +37,7 @@ void yyerror(const char *str) {
   cout<<"Parse error at \"" << lexer->YYText() << "\": " << str << "." << endl;
 }
  
-int yylex(void){
+extern "C" int yylex(void){
     int i = lexer->mmlex(); 
     return i;
 }

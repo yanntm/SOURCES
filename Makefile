@@ -21,11 +21,11 @@ AR := $(AR) rcs
 
 ### The following variables can be overridden 
 ### by defining them as environment variables.
-CFLAGS ?= -g -DGLIBCXX_DEBUG
-# CFLAGS ?= -O2 
+# CFLAGS ?= -g -DGLIBCXX_DEBUG
+CFLAGS ?= -O2
 CPPFLAGS ?= $(CFLAGS)
-# LDFLAGS ?= -O2
-LDFLAGS ?= -g
+LDFLAGS ?= -O2
+# LDFLAGS ?= -g
 INCLUDES ?= 
 LEXFLAGS ?=
 YACCFLAGS ?=
@@ -33,14 +33,16 @@ LEXPPFLAGS ?=
 YACCPPFLAGS ?=
 ARFLAGS :=
 UIL ?= /usr/bin/uil
+ENABLE_Cxx17 ?= -std=c++17
 ENABLE_Cxx14 ?= -std=c++14
 
 # External libraries
 FLEX-INCLUDE :=
 FLEX-LIB := 
+#-lfl
 
-GLIB-INCLUDE := $(shell pkg-config --silence-errors --cflags glib-2.0)
-GLIB-LIB := $(shell pkg-config --silence-errors --libs glib-2.0)
+GLIB-INCLUDE := $(shell pkg-config --static --silence-errors --cflags glib-2.0)
+GLIB-LIB := $(shell pkg-config --static --silence-errors --libs glib-2.0)
 
 X11-INCLUDE := -I/usr/include/X11 -I/usr/include/openmotif -I/usr/include/Xm
 X11-LIB := -L/usr/lib/X11 -L/usr/lib/openmotif -L/usr/lib/Xm -L/usr/local/lib
@@ -60,9 +62,11 @@ SCRIPTDIR := scripts
 LIBDIR := lib
 INSTALLEDSOURCEDIR :=inst_src
 INSTALLDIR ?= /usr/local/GreatSPN
+PKGDIR = /usr/local/GreatSPN
 
 ### - Platform-specific variations - ###
 UNAME_S := $(shell uname -s)
+UNAME_R := $(shell uname -r)
 ifeq ($(UNAME_S),Darwin)
    # MacOSX specific variables
    X11-INCLUDE := -I/opt/X11/include
@@ -70,15 +74,15 @@ ifeq ($(UNAME_S),Darwin)
    MOTIF-INCLUDE := -I/usr/OpenMotif/include
    MOTIF-LIB := -L/usr/OpenMotif/lib
    UIL := /usr/OpenMotif/bin/uil
-   FLEX-LIB := 
+#    FLEX-LIB := -lfl -L/usr/local/opt/flex/lib
    OPENGL-LIB := -lgl -lglu -lglut
-   CC := gcc -g -c -std=c99
-   CPP := g++ -g -c -std=c++14 -Wno-unused-local-typedef
+   CC := gcc -g -c -std=c99 -Wno-deprecated-register
+   CPP := g++ -g -c -std=c++17 -Wno-unused-local-typedef -Wno-deprecated-register
    LD := gcc -g 
    LDPP := g++ -g 
    CFLAGS += -I/usr/include/malloc -I/usr/local/include/
    LDFLAGS += -L/usr/local/lib/
-   ENABLE_Cxx14 := -std=c++14 -stdlib=libc++ -U__STRICT_ANSI__
+   ENABLE_Cxx17 := -std=c++17 -stdlib=libc++ -U__STRICT_ANSI__
    BOOST_Cxx=/usr/local/include
    BOOST_Cxx_LIB=/usr/local/lib
    INCLUDE_ELVIO_CPP_SOLVER := 1
@@ -101,6 +105,14 @@ ifeq ($(UNAME_S),Darwin)
 endif
 INCLUDE_ELVIO_CPP_SOLVER := 0
 
+### - Platform-specific variations - ###
+ifneq (,$(findstring Microsoft,$(UNAME_R)))
+  ifeq ($(UNAME_S),Linux)
+    IS_WSL := 1
+    #$(info "Running on WSL.")
+  endif
+endif
+###
 
 # # REMOVE THESE LINES
 # ifeq "Linux" "$(shell uname)"
@@ -109,15 +121,43 @@ INCLUDE_ELVIO_CPP_SOLVER := 0
 
 # have_command = $(eval $(1):=$(if $(shell which $(2)),1,))
 
-ifneq ($(shell which $(UIL)),$(UIL))
-  $(warning "OpenMotif is not installed. Some packages will not compile properly.")
-else
-  HAS_OPENMOTIF_LIB := 1
-endif
+##############################################################################
+# Dependency resolution
+##############################################################################
+# Macros used to simplify the work
 
-ifeq ($(shell which pkg-config),)
-  $(warning "The pkg-config tool is not installed. Some packages will not compile properly.")
-endif
+# search for a file $(2). If it exists, define variable HAS_$(1) to 1
+define search_file
+	$(if $(HAS_$(1)), , $(if $(wildcard $(2)), $(eval HAS_$(1):=1) ))
+endef
+# search for a library in path $(2). If it exists, define two variables:
+#  HAS_$(1) to 1,  LINK_$(1) to the -L/path and the additional rules $(3)
+define search_lib
+	$(if $(HAS_$(1)), , \
+	  $(if $(wildcard $(2)), \
+	    $(eval HAS_$(1):=1) ; $(eval LINK_$(1):=-L$(dir $(2)) $(3))  )\
+	 )
+endef
+define warn_missing
+	$(if $(HAS_$(1)), , $(warning Missing $(2). Some packages will not be compiled.) )
+endef
+##############################################################################
+
+$(call search_file,OPENMOTIF,$(UIL))
+$(call warn_missing,OPENMOTIF,OpenMotif)
+
+# ifneq ($(shell which $(UIL)),$(UIL))
+#   $(warning "OpenMotif is not installed. Some packages will not compile properly.")
+# else
+#   HAS_OPENMOTIF_LIB := 1
+# endif
+
+$(call search_file,PKGCONFIG,$(shell which pkg-config))
+$(call warn_missing,PKGCONFIG,pkg-config tool)
+
+# ifeq ($(shell which pkg-config),)
+#   $(warning "The pkg-config tool is not installed. Some packages will not compile properly.")
+# endif
 
 ifeq ($(GLIB-INCLUDE),)
   $(warning "The glib-2.0 library is not installed. Some packages will not compile properly.")
@@ -125,35 +165,58 @@ else
 	HAS_GLIB_LIB := 1
 endif
 
+$(call search_file,GRAPHMDP_LIB,/usr/local/lib/libgraphmdp.*,-lgraphmdp)
+$(call warn_missing,GRAPHMDP_LIB,GraphMDP library)
+# GRAPHMDP_LIB := /usr/local/lib/libgraphmdp.a
+# ifeq ($(wildcard $(GRAPHMDP_LIB)),)
+#   $(warning "The GraphMDP library is not installed. Some packages will not be compiled.")
+# else
+#   HAS_GRAPHMDP_LIB := 1
+# endif
 
-GRAPHMDP_LIB := /usr/local/lib/libgraphmdp.a
-ifeq ($(wildcard $(GRAPHMDP_LIB)),)
-  $(warning "The GraphMDP library is not installed. Some packages will not be compiled.")
-else
-  HAS_GRAPHMDP_LIB := 1
-endif
 
+$(call search_lib,LIBXMLPP2-6_LIB,/usr/local/lib/libxml++-2.6)
+$(call search_lib,LIBXMLPP2-6_LIB,/usr/lib/libxml++-2.6)
+$(call search_lib,LIBXMLPP2-6_LIB,/usr/lib64/libxml++-2.6)
+$(call warn_missing,LIBXMLPP2-6_LIB,libXML++-2.6 library)
+# LIBXMLPP2-6_LIB := /usr/local/lib/libxml++-2.6
+# LIBXMLPP2-6_LIB_2 := /usr/lib/libxml++-2.6
+# ifneq ($(wildcard $(LIBXMLPP2-6_LIB)),)
+#   HAS_LIBXMLPP2-6_LIB := 1
+# else ifneq ($(wildcard $(LIBXMLPP2-6_LIB_2)),)
+#   HAS_LIBXMLPP2-6_LIB := 1
+# else
+#   $(warning "The libXML++-2.6 library is not installed. Some packages will not be compiled.")
+# endif
 
-LIBXMLPP2-6_LIB := /usr/local/lib/libxml++-2.6
-ifeq ($(wildcard $(LIBXMLPP2-6_LIB)),)
-  $(warning "The libXML++-2.6 library is not installed. Some packages will not be compiled.")
-else
-  HAS_LIBXMLPP2-6_LIB := 1
-endif
+$(call search_lib,GLIBMM2-4_LIB,/usr/local/lib/libglibmm-2.4.*)
+$(call search_lib,GLIBMM2-4_LIB,/usr/lib/libglibmm-2.4.*)
+$(call search_lib,GLIBMM2-4_LIB,/usr/lib64/libglibmm-2.4.*)
+$(call warn_missing,GLIBMM2-4_LIB,glibmm-2.4 library)
+# GLIBMM2-4_LIB := /usr/local/lib/libglibmm-2.4.*
+# GLIBMM2-4_LIB_2 := /usr/lib/libglibmm-2.4.*
+# ifneq ($(wildcard $(GLIBMM2-4_LIB)),)
+#   HAS_GLIBMM2-4_LIB := 1
+# else ifneq ($(wildcard $(GLIBMM2-4_LIB_2)),)
+#   HAS_GLIBMM2-4_LIB := 1
+# else
+#   $(warning "The glibmm-2.4 library is not installed. Some packages will not be compiled.")
+# endif
 
-GLIBMM2-4_LIB := /usr/local/lib/libglibmm-2.4.*
-ifeq ($(wildcard $(GLIBMM2-4_LIB)),)
-  $(warning "The glibmm-2.4 library is not installed. Some packages will not be compiled.")
-else
-  HAS_GLIBMM2-4_LIB := 1
-endif
-
-GLPK_LIB := /usr/local/lib/libglpk.a
-ifeq ($(wildcard $(GLPK_LIB)),)
-  $(warning "The GLPJ library is not installed. Some packages will not be compiled.")
-else
-  HAS_GLPK_LIB := 1
-endif
+$(call search_lib,GLPK_LIB,/usr/local/lib/libglpk.*,-lglpk)
+$(call search_lib,GLPK_LIB,/usr/lib/libglpk.*,-lglpk)
+$(call search_lib,GLPK_LIB,/usr/lib64/libglpk.*,-lglpk)
+$(call warn_missing,GLPK_LIB,GLPK library)
+# $(info GLPK_LIB  $(HAS_GLPK_LIB)  $(LINK_GLPK_LIB))
+# GLPK_LIB := /usr/local/lib/libglpk.a
+# GLPK_LIB_2 := /usr/lib/libglpk.a
+# ifneq ($(wildcard $(GLPK_LIB)),)
+#   HAS_GLPK_LIB := 1
+# else ifneq ($(wildcard $(GLPK_LIB)),)
+#   HAS_GLPK_LIB := 1
+# else
+#   $(warning "The GLPJ library is not installed. Some packages will not be compiled.")
+# endif
 
 
 # LP_SOLVE_LIB := /usr/local/lib/liblpsolve55.a
@@ -312,8 +375,8 @@ all: libraries binaries scripts
 ### Common definitions ###
 
 # generate_WN_FLAGS = '-DCONST_H="$(1)"' '-DCONST1_H="../INCLUDE/$(1)"' \
-					'-DCONST2_H="../../INCLUDE/$(1)"' '-DCONST3_H="../../../INCLUDE/$(1)"' \
-					'-DWN_GRAMMAR_H="../../objects/$(2)/WN/TRANSL/wn_grammar.y.h"' $(CFLAGS)
+# 					'-DCONST2_H="../../INCLUDE/$(1)"' '-DCONST3_H="../../../INCLUDE/$(1)"' \
+# 					'-DWN_GRAMMAR_H="../../objects/$(2)/WN/TRANSL/wn_grammar.y.h"' $(CFLAGS)
 # generate_GSPN_FLAGS = '-DCONST_H="$(1)"' '-DCONST1_H="../INCLUDE/$(1)"' \
 # 					  '-DCONST2_H="../../INCLUDE/$(1)"' '-DCONST3_H="../../../INCLUDE/$(1)"' \
 # 					  '-DWN_GRAMMAR_H="../../objects/$(2)/WN/TRANSL/gspn_grammar.y.h"' $(CFLAGS)
@@ -441,7 +504,7 @@ algebra_SOURCES := algebra/Composition/global.c \
 				   algebra/Composition/lexer.l \
 				   algebra/Composition/parser.y
 				   
-algebra_LDFLAGS:= -lm
+algebra_LDFLAGS:= $(LDFLAGS) -lm
 SCRIPTS += unfolding algebra remove
 
 algebra/Remove/lexer.l: $(OBJDIR)/remove/algebra/Remove/parser.y.o
@@ -512,7 +575,7 @@ TARGETS += WNSIM WNSYMB WNRG WNSRG MDWNRG MDWNSRG WNESRG \
 		   GSPNRG GSPNSIM swn-translator PN2ODE
 
 WNSIM_CFLAGS := $(call generate_WN_FLAGS,TOOL_WNSIM,WNSIM)
-WNSIM_LDFLAGS:= -lm
+WNSIM_LDFLAGS:= $(LDFLAGS) -lm
 WNSIM_SOURCES := WN/SOURCE/SHARED/service.c \
 				 WN/SOURCE/SHARED/ealloc.c \
 				 WN/SOURCE/SHARED/token.c \
@@ -546,7 +609,7 @@ WNSIM_SOURCES := WN/SOURCE/SHARED/service.c \
 				 WN/TRANSL/wn.l
 
 WNSYMB_CFLAGS := $(call generate_WN_FLAGS,TOOL_WNSYMB,WNSYMB)
-WNSYMB_LDFLAGS:= -lm
+WNSYMB_LDFLAGS:= $(LDFLAGS) -lm
 WNSYMB_SOURCES := $(WNSIM_SOURCES) \
 				  WN/SOURCE/SHARED/split.c \
 				  WN/SOURCE/SHARED/group.c \
@@ -564,7 +627,7 @@ WNSYMB_SOURCES := $(WNSIM_SOURCES) \
 # SPOTSOU = WN/SOURCE/SPOT
 
 WNRG_CFLAGS := $(call generate_WN_FLAGS,TOOL_WNRG,WNRG)
-WNRG_LDFLAGS:= -lm
+WNRG_LDFLAGS:= $(LDFLAGS) -lm
 WNRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				WN/SOURCE/SHARED/ealloc.c \
 				WN/SOURCE/SHARED/token.c \
@@ -599,7 +662,7 @@ WNRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				WN/TRANSL/wn.l
 
 WNSRG_CFLAGS := $(call generate_WN_FLAGS,TOOL_WNSRG,WNSRG)
-WNSRG_LDFLAGS:= -lm
+WNSRG_LDFLAGS:= $(LDFLAGS) -lm
 WNSRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				 WN/SOURCE/SHARED/ealloc.c \
 				 WN/SOURCE/SHARED/token.c \
@@ -638,7 +701,7 @@ WNSRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				 WN/TRANSL/wn.l
 
 MDWNRG_CFLAGS := $(call generate_WN_FLAGS,TOOL_MDWNRG,MDWNRG)
-MDWNRG_LDFLAGS:= -lm
+MDWNRG_LDFLAGS:= $(LDFLAGS) -lm
 MDWNRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				  WN/SOURCE/SHARED/ealloc.c \
 				  WN/SOURCE/SHARED/token.c \
@@ -673,7 +736,7 @@ MDWNRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				  WN/TRANSL/wn.l
 
 MDWNSRG_CFLAGS := $(call generate_WN_FLAGS,TOOL_MDWNSRG,MDWNSRG)
-MDWNSRG_LDFLAGS:= -lm
+MDWNSRG_LDFLAGS:= $(LDFLAGS) -lm
 MDWNSRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				   WN/SOURCE/SHARED/ealloc.c \
 				   WN/SOURCE/SHARED/token.c \
@@ -712,7 +775,7 @@ MDWNSRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				   WN/TRANSL/wn.l
 
 WNESRG_CFLAGS := $(call generate_WN_FLAGS,TOOL_WNESRG,WNESRG)
-WNESRG_LDFLAGS:= -lm
+WNESRG_LDFLAGS:= $(LDFLAGS) -lm
 WNESRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				  WN/SOURCE/SHARED/ealloc.c \
 				  WN/SOURCE/SHARED/token.c \
@@ -809,7 +872,7 @@ RGMEDD_SOURCES := WN/SOURCE/SHARED/service.c \
 # Modify the lexer and the parser generators used by the
 RGMEDD_LEX_WN/SOURCE/AUTOMA/AutoLexer.l = $(LEX) -P kk --header-file=$(@:.c=.h)
 RGMEDD_YACCPP_WN/SOURCE/AUTOMA/AutoParser.yy := $(BYACCDIR)byacc -v -p kk -d
-RGMEDD_YACCPP_WN/SOURCE/CTL/CTLParser.yy := $(BYACCDIR)byacc -v -p mm -d
+RGMEDD_YACCPP_WN/SOURCE/CTL/CTLParser.yy := $(BYACCDIR)byacc -p mm -v -d
 RGMEDD_LEXPP_WN/SOURCE/CTL/CTLLexer.ll = $(LEXPP) --header-file=$(@:.cpp=.h)
 RGMEDD_LD := $(LDPP)
 
@@ -825,7 +888,7 @@ $(OBJDIR)/RGMEDD/WN/SOURCE/AUTOMA/AutoParser.yy.o: $(OBJDIR)/RGMEDD/WN/SOURCE/AU
 
 RGMEDD2_CFLAGS := $(CFLAGS) $(call generate_WN_FLAGS,TOOL_RGMEDD2,RGMEDD2) \
 				          $(FLEX-INCLUDE) 
-RGMEDD2_CPPFLAGS := $(CPPFLAGS) $(ENABLE_Cxx14) \
+RGMEDD2_CPPFLAGS := $(CPPFLAGS) $(ENABLE_Cxx17) -Wno-deprecated-register \
                     $(INCLUDE_GMP_LIBRARY) \
                     $(RGMEDD2_CFLAGS)  
                     
@@ -908,9 +971,89 @@ TARGETS += RGMEDD2
 #   TARGETS += RGMEDD
 # endif
 
+#### RGMEDD version 3 ########################################
+
+RGMEDD3_CFLAGS := $(CFLAGS) $(call generate_WN_FLAGS,TOOL_RGMEDD3,RGMEDD3) \
+                  $(FLEX-INCLUDE) 
+RGMEDD3_CPPFLAGS := $(CPPFLAGS) $(ENABLE_Cxx14) \
+                    -I/usr/local/include $(INCLUDE_GMP_LIB) \
+                    $(RGMEDD3_CFLAGS) -I/usr/local/include 
+                    
+                    # -D_GLIBCXX_DEBUG=1 /usr/local/lib/libmeddly.a
+RGMEDD3_LDFLAGS := -L/usr/local/lib $(LDFLAGS) $(FLEX-LIB) -lmeddly $(LINK_GMP_LIB)
+          #-lmeddly 
+RGMEDD3_SOURCES := WN/SOURCE/SHARED/service.c \
+           WN/SOURCE/SHARED/ealloc.c \
+           WN/SOURCE/SHARED/token.c \
+           WN/SOURCE/SHARED/dimensio.c \
+           WN/SOURCE/SHARED/errors.c \
+           WN/SOLVE/compact.c \
+           WN/SOURCE/SHARED/common.c \
+           WN/SOURCE/SHARED/enabling.c \
+           WN/SOURCE/SHARED/fire.c \
+           WN/SOURCE/SHARED/shared1.c \
+           WN/SOURCE/SHARED/shared2.c \
+           WN/SOURCE/SHARED/outdom.c \
+           WN/SOURCE/SHARED/report.c \
+           WN/SOURCE/SHARED/precheck.c \
+           WN/SOURCE/SHARED/flush.c \
+           WN/SOURCE/SHARED/degree.c \
+           WN/SOURCE/REACHAB/graph_se.c \
+           WN/SOURCE/REACHAB/stack.c \
+           WN/SOURCE/REACHAB/convert.c \
+           WN/SOURCE/REACHAB/rg_files.c \
+           WN/SOURCE/REACHAB/rgengwn.c \
+           WN/SOURCE/READNET/read_arc.c \
+           WN/SOURCE/READNET/read_t_c.c \
+           WN/SOURCE/READNET/read_DEF.c \
+           WN/SOURCE/READNET/read_NET.c \
+           WN/SOURCE/READNET/read_PIN.c \
+           WN/SOURCE/READNET/read_t_s.c \
+           WN/SOURCE/READNET/wn_yac.c \
+           WN/TRANSL/wn_grammar.y \
+           WN/TRANSL/wn.l \
+           WN/SOURCE/RGMEDD3/mainMEDD3.cpp \
+           WN/SOURCE/RGMEDD3/utils/mt19937-64.c \
+           WN/SOURCE/RGMEDD3/varorders.cpp \
+           WN/SOURCE/RGMEDD3/varorders_bgl.cpp \
+           WN/SOURCE/RGMEDD3/varorders_meta.cpp \
+           WN/SOURCE/RGMEDD3/varorders_soups.cpp \
+           WN/SOURCE/RGMEDD3/varorders_pbasis.cpp \
+           WN/SOURCE/RGMEDD3/meddEv.cpp \
+           WN/SOURCE/RGMEDD3/general.cpp \
+           WN/SOURCE/RGMEDD3/graphMEDD.cpp \
+           WN/SOURCE/RGMEDD3/CTL.cpp \
+           WN/SOURCE/RGMEDD3/CTLParser.yy \
+           WN/SOURCE/RGMEDD3/CTLLexer.ll 
+
+# Modify the lexer and the parser generators used by the
+# RGMEDD3_LEX_WN/SOURCE/AUTOMA/AutoLexer.l = $(LEX) -P kk --header-file=$(@:.c=.h)
+# RGMEDD3_YACCPP_WN/SOURCE/AUTOMA/AutoParser.yy := byacc -v -p kk -d
+RGMEDD3_YACCPP_WN/SOURCE/RGMEDD3/CTLParser.yy := byacc -p mm -v -d
+RGMEDD3_LEXPP_WN/SOURCE/RGMEDD3/CTLLexer.ll = $(LEXPP) -+ -P mm --header-file=$(@:.cpp=.h)
+RGMEDD3_LD := $(LDPP) -shared-libgcc
+RGMEDD3_CPPFLAGS := $(RGMEDD3_CPPFLAGS) -I.
+
+$(OBJDIR)/RGMEDD3/WN/SOURCE/RGMEDD3/CTLParser.yy.o: $(OBJDIR)/RGMEDD3/WN/SOURCE/RGMEDD3/CTLLexer.ll.cpp
+
+$(OBJDIR)/RGMEDD3/WN/SOURCE/RGMEDD3/CTLLexer.ll.o: $(OBJDIR)/RGMEDD3/WN/SOURCE/RGMEDD3/CTLParser.yy.cpp
+
+# $(OBJDIR)/RGMEDD3/WN/SOURCE/RGMEDD3/CTLLexer.h: $(OBJDIR)/RGMEDD3/WN/SOURCE/RGMEDD3/CTLLexer.ll.cpp
+
+
+ifdef HAS_LP_SOLVE_LIB
+  RGMEDD3_CPPFLAGS := $(RGMEDD3_CPPFLAGS) $(INCLUDE_LP_SOLVE_LIB)
+  RGMEDD3_LDFLAGS := $(RGMEDD3_LDFLAGS) $(LINK_LP_SOLVE_LIB) 
+endif
+
+# ifdef USE_RGMEDD3
+TARGETS += RGMEDD3
+# endif
+
+###################################################################################
 
 GSPNRG_CFLAGS := $(call generate_WN_FLAGS,TOOL_GSPNRG,GSPNRG)
-GSPNRG_LDFLAGS:= -lm
+GSPNRG_LDFLAGS:= $(LDFLAGS) -lm
 GSPNRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				  WN/SOURCE/SHARED/ealloc.c \
 				  WN/SOURCE/SHARED/token.c \
@@ -949,7 +1092,7 @@ GSPNRG_SOURCES := WN/SOURCE/SHARED/service.c \
 				  WN/TRANSL/wn.l
 
 GSPNSIM_CFLAGS := $(call generate_WN_FLAGS,TOOL_GSPNSIM,GSPNSIM)
-GSPNSIM_LDFLAGS:= -lm
+GSPNSIM_LDFLAGS:= $(LDFLAGS) -lm
 GSPNSIM_SOURCES := WN/SOURCE/SHARED/service.c \
 				   WN/SOURCE/SHARED/ealloc.c \
 				   WN/SOURCE/SHARED/token.c \
@@ -1010,7 +1153,7 @@ swn-translator_SOURCES := WN/SOURCE/UNFOLDING/alloc.c \
 					 	  
 PN2ODE_LDFLAGS := $(LDFLAGS) $(FLEX-LIB)
 PN2ODE_CFLAGS := $(call generate_WN_FLAGS,TOOL_PN2ODE,PN2ODE)
-PN2ODE_CPPFLAGS := $(PN2ODE_CFLAGS) $(ENABLE_Cxx14) -I.
+PN2ODE_CPPFLAGS := $(PN2ODE_CFLAGS) $(ENABLE_Cxx17) -I.
 PN2ODE_LD := $(LDPP)
 PN2ODE_SOURCES := WN/SOURCE/SHARED/service.c \
 				  WN/SOURCE/SHARED/ealloc.c \
@@ -1384,14 +1527,14 @@ ESRG_CTMC_DEPENDS := $(LIBDIR)/libgspnMCESRG.a
 ESRG_CTMC_LD := $(LDPP)
 ESRG_CTMC_CPPFLAGS := $(CPPFLAGS) -I../../../INCLUDE -Wall \
 					  $(call generate_WN_FLAGS,TOOL_ESRG_CTMC,ESRG_CTMC)
-ESRG_CTMC_LDFLAGS := -L$(LIBDIR) -lgspnMCESRG -lm $(FLEX-LIB)
+ESRG_CTMC_LDFLAGS := $(LDFLAGS) -L$(LIBDIR) -lgspnMCESRG -lm $(FLEX-LIB)
 
 TARGETS += ESRG_CTMC
 
 
 
 
-MDP_includes := $(CPPFLAGS) `pkg-config --cflags glib-2.0 libxml++-2.6 glibmm-2.4` \
+MDP_includes := $(CPPFLAGS) `pkg-config --static --cflags glib-2.0 libxml++-2.6 glibmm-2.4` \
 				$(call generate_WN_FLAGS,TOOL_MDP,MDP) \
 				-I/usr/local/include/graphMDP -I/usr/include/glpk/ $(FLEX-INCLUDE) \
 				$(X11-INCLUDE)
@@ -1399,8 +1542,8 @@ MDP_includes := $(CPPFLAGS) `pkg-config --cflags glib-2.0 libxml++-2.6 glibmm-2.
 MDP_SOURCES := WN/SOURCE/MDWN/mdp_main.cc WN/SOURCE/MDWN/general.cpp 
 MDP_CPPFLAGS := $(MDP_includes)
 MDP_LD := $(LDPP)
-MDP_LDFLAGS := $(LDFLAGS) $(X11-LIB) -lgraphmdp $(OPENGL-LIB) -lglpk \
-			   `pkg-config --libs glib-2.0 libxml++-2.6 glibmm-2.4`
+MDP_LDFLAGS := $(LDFLAGS) $(X11-LIB) $(LINK_GRAPHMDP_LIB) $(OPENGL-LIB) $(LINK_GLPK_LIB) \
+	`pkg-config --static --libs glib-2.0 libxml++-2.6 glibmm-2.4`
 
 ifdef HAS_GRAPHMDP_LIB
   ifdef HAS_LIBXMLPP2-6_LIB
@@ -1418,7 +1561,7 @@ RG2RRG_SOURCES := WN/SOURCE/MDWN/rg2rrg.cpp \
 RG2RRG_CPPFLAGS := $(MDP_includes) 
 RG2RRG_LD := $(LDPP)
 RG2RRG_DEPENDS := $(LIBDIR)/libgspnMCESRG.a
-RG2RRG_LDFLAGS := $(LDFLAGS) -L$(LIBDIR) -lgspnMCESRG -lm -lglpk $(FLEX-LIB)
+RG2RRG_LDFLAGS := $(LDFLAGS) -L$(LIBDIR) -lgspnMCESRG -lm $(LINK_GLPK_LIB) $(FLEX-LIB)
 
 
 MDWN2WN_SOURCES := WN/SOURCE/MDWN/mdwn2wn.cpp \
@@ -1427,7 +1570,7 @@ MDWN2WN_SOURCES := WN/SOURCE/MDWN/mdwn2wn.cpp \
 MDWN2WN_CPPFLAGS := $(MDP_includes)
 MDWN2WN_LD := $(LDPP)
 MDWN2WN_DEPENDS := $(LIBDIR)/libgspnMCESRG.a
-MDWN2WN_LDFLAGS := $(LDFLAGS) -L$(LIBDIR) -lgspnMCESRG -lm -lglpk $(FLEX-LIB)
+MDWN2WN_LDFLAGS := $(LDFLAGS) -L$(LIBDIR) -lgspnMCESRG -lm $(LINK_GLPK_LIB) $(FLEX-LIB)
 
 GDTMC_SOURCES := WN/SOURCE/MDWN/GenDTMC.cpp \
 				 WN/SOURCE/MDWN/functionGenDTMC.cpp \
@@ -1435,14 +1578,14 @@ GDTMC_SOURCES := WN/SOURCE/MDWN/GenDTMC.cpp \
 GDTMC_CPPFLAGS := $(MDP_includes)
 GDTMC_LD := $(LDPP)
 GDTMC_DEPENDS := $(LIBDIR)/libgspnMCESRG.a
-GDTMC_LDFLAGS := $(LDFLAGS) -L$(LIBDIR) -lgspnMCESRG -lm -lglpk $(FLEX-LIB)
+GDTMC_LDFLAGS := $(LDFLAGS) -L$(LIBDIR) -lgspnMCESRG -lm $(LINK_GLPK_LIB) $(FLEX-LIB)
 
 PARSER_SOURCES := WN/SOURCE/MDWN/parser.cpp \
 				  WN/SOURCE/MDWN/general.cpp
 PARSER_CPPFLAGS := $(MDP_includes)
 PARSER_LD := $(LDPP)
 PARSER_DEPENDS := $(LIBDIR)/libgspnMCESRG.a
-PARSER_LDFLAGS := $(LDFLAGS) -L$(LIBDIR) -lgspnMCESRG -lm -lglpk $(FLEX-LIB)
+PARSER_LDFLAGS := $(LDFLAGS) -L$(LIBDIR) -lgspnMCESRG -lm $(LINK_GLPK_LIB) $(FLEX-LIB)
 
 mdwn2mdp_SOURCEFILE := WN/SOURCE/MDWN/MDWN2MDP.sh
 mdwnsolve_SOURCEFILE := WN/SOURCE/MDWN/MDWNSolve.sh
@@ -1560,7 +1703,7 @@ GreatSPN_SOURCES := $(GREATSRC)/Display.c           $(GREATSRC)/MenuCallBacks.c 
 					$(GREATSRC)/unfold.c            $(GREATSRC)/warningdialog.c    $(GREATSRC)/zoom.c
 
 GreatSPN_CFLAGS	:= -DLinux $(X11-INCLUDE) $(MOTIF-INCLUDE)
-GreatSPN_LDFLAGS := $(X11-LIB) $(MOTIF-LIB) -lMrm -lXm -lXp -lXext -lXt -lX11 -lm
+GreatSPN_LDFLAGS := $(LDFLAGS) $(X11-LIB) $(MOTIF-LIB) -lMrm -lXm -lXp -lXext -lXt -lX11 -lm
 
 UIL_FILES:= UIL/aboutdialog.uil       UIL/appconfig.uil           UIL/arcdialog.uil\
 			UIL/bitmaps.uil           UIL/colorchangedialog.uil   UIL/colors.uil\
@@ -1825,11 +1968,11 @@ CSLTA_SOURCES := NSRC/CSLTA-solver/asmc.cpp \
                  NSRC/CSLTA-solver/parser.y \
                  NSRC/CSLTA-solver/lexer.l
 
-CSLTA_CPPFLAGS := $(CPPFLAGS) -Wall $(ENABLE_Cxx14)
+CSLTA_CPPFLAGS := $(CPPFLAGS) -Wall $(ENABLE_Cxx17)
 CSLTA_LEX := flex
 CSLTA_YACC := bison -d
 CSLTA_LD := $(LDPP)
-CSLTA_LDFLAGS :=  $(BOOST_Cxx_LIB)/lib/libboost_timer.a \
+CSLTA_LDFLAGS :=  $(LDFLAGS) $(BOOST_Cxx_LIB)/lib/libboost_timer.a \
                   $(BOOST_Cxx_LIB)/lib/libboost_system.a \
                   $(BOOST_Cxx_LIB)/lib/libboost_chrono.a
 
@@ -1893,7 +2036,7 @@ $(OBJDIR)/DSPN-Tool-Debug/NSRC/DSPN-Tool/CSLTA.o: $(OBJDIR)/DSPN-Tool-Debug/NSRC
 NSRC/DSPN-Tool/lexer.ll: $(OBJDIR)/DSPN-Tool-Debug/NSRC/DSPN-Tool/newparser.lyy.o bin/lemon
 
 DSPN-Tool-Debug_SOURCES := $(DSPN-Tool_SOURCES)
-DSPN-Tool-Debug_CPPFLAGS := -Wall $(ENABLE_Cxx14) \
+DSPN-Tool-Debug_CPPFLAGS := -Wall $(ENABLE_Cxx17) \
                       		-Iobjects/DSPN-Tool-Debug/NSRC/DSPN-Tool/ \
                       		-I$(BOOST_Cxx) \
                       		-g -Wall -Wextra -Wno-unused-parameter \
@@ -1904,14 +2047,14 @@ DSPN-Tool-Debug_LEXPP := $(LEX)
 
 ifdef HAS_LP_SOLVE_LIB
   DSPN-Tool_CPPFLAGS := $(DSPN-Tool_CPPFLAGS) $(INCLUDE_LP_SOLVE_LIB)
-  DSPN-Tool_LDFLAGS := $(DSPN-Tool_LDFLAGS) $(LINK_LP_SOLVE_LIB)
+  DSPN-Tool_LDFLAGS := $(LDFLAGS) $(DSPN-Tool_LDFLAGS) $(LINK_LP_SOLVE_LIB)
   DSPN-Tool-Debug_CPPFLAGS := $(DSPN-Tool-Debug_CPPFLAGS) $(INCLUDE_LP_SOLVE_LIB)
-  DSPN-Tool-Debug_LDFLAGS := $(DSPN-Tool-Debug_LDFLAGS) $(LINK_LP_SOLVE_LIB)
+  DSPN-Tool-Debug_LDFLAGS := $(LDFLAGS) $(DSPN-Tool-Debug_LDFLAGS) $(LINK_LP_SOLVE_LIB)
 endif
 
 alphaFactory_SOURCES := NSRC/alphaFactory/alphaFactory.cpp
 
-alphaFactory_CPPFLAGS := $(CPPFLAGS) -Wall $(ENABLE_Cxx14) -I$(BOOST_Cxx) \
+alphaFactory_CPPFLAGS := $(CPPFLAGS) -Wall $(ENABLE_Cxx17) -I$(BOOST_Cxx) \
                          -Wno-unused-function 
 alphaFactory_LD := $(LDPP)
 
@@ -1934,7 +2077,7 @@ install-great_package-script:
 	@echo "  [GEN] " $(GREAT_PKG_SCRIPT)
 	@$(MKDIR) $(dir $(GREAT_PKG_SCRIPT))
 	@#echo GSPN2PACKAGE=$(INSTALLDIR) > $@
-	@cat contrib/great_package.sh | sed 's/@@@@@@/$(subst /,\/,$(INSTALLDIR))/g' >> $(GREAT_PKG_SCRIPT)
+	@cat contrib/great_package.sh | sed 's/@@@@@@/$(subst /,\/,$(PKGDIR))/g' >> $(GREAT_PKG_SCRIPT)
 	@chmod a+x $(GREAT_PKG_SCRIPT)
 
 # $(SCRIPTDIR)/great_package.sh: contrib/great_package.sh
@@ -2021,11 +2164,11 @@ endif
 ### simsrc2 package
 ######################################
 
-engine_LDFLAGS := -lm
+engine_LDFLAGS := $(LDFLAGS) -lm
 engine_SOURCES := simsrc2/engine_control.c simsrc2/engine_event.c \
 				  simsrc2/engine_pn.c WN/SOLVE/compact.c
 cntrl_SOURCES := simsrc2/cntrl.c
-measure_LDFLAGS := -lm
+measure_LDFLAGS := $(LDFLAGS) -lm
 measure_SOURCES := simsrc2/measure_checkpoint.c simsrc2/measure_pn.c \
 				   WN/SOLVE/compact.c 
 
@@ -2096,10 +2239,12 @@ CPPOBJECTS := $(foreach target, $(TARGETS) $(LIBRARIES), $(call src2obj, \
 LEXOBJECTS := $(foreach target, $(TARGETS) $(LIBRARIES), $(call src2obj, \
 				$(filter %.l, $($(target)_SOURCES)),$(target)))
 LEXDERIVEDSOURCES := $(foreach obj, $(LEXOBJECTS), $(obj:.o=.c))
+LEXDERIVEDHEADERS := $(foreach obj, $(LEXOBJECTS), $(obj:.o=.h))
 
 LEXPPOBJECTS := $(foreach target, $(TARGETS) $(LIBRARIES), $(call src2obj, \
 				$(filter %.ll, $($(target)_SOURCES)),$(target)))
 LEXPPDERIVEDSOURCES := $(foreach obj, $(LEXPPOBJECTS), $(obj:.o=.cpp))
+LEXPPDERIVEDHEADERS := $(foreach obj, $(LEXPPOBJECTS), $(obj:.o=.h))
 
 ### Source and object files generated from .y and .yy sources
 YACCOBJECTS := $(foreach target, $(TARGETS) $(LIBRARIES), $(call src2obj, \
