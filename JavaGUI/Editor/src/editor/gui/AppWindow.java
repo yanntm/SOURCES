@@ -369,11 +369,13 @@ public final class AppWindow extends javax.swing.JFrame implements MainWindowInt
         jZoomPanel.setActionZoomOut(actionZoomOut);
         
         Font titleFont = ((TitledBorder)jAppToolBar_File.getBorder()).getTitleFont();
-        titleFont = titleFont.deriveFont(titleFont.getSize2D() * 0.9f);
-        ((TitledBorder)jAppToolBar_File.getBorder()).setTitleFont(titleFont);
-        ((TitledBorder)jAppToolBar_Edit.getBorder()).setTitleFont(titleFont);
-        ((TitledBorder)jAppToolBar_Basic.getBorder()).setTitleFont(titleFont);
-        ((TitledBorder)jAppToolBar_Advanced.getBorder()).setTitleFont(titleFont);
+        if (titleFont != null) {
+            titleFont = titleFont.deriveFont(titleFont.getSize2D() * 0.9f);
+            ((TitledBorder)jAppToolBar_File.getBorder()).setTitleFont(titleFont);
+            ((TitledBorder)jAppToolBar_Edit.getBorder()).setTitleFont(titleFont);
+            ((TitledBorder)jAppToolBar_Basic.getBorder()).setTitleFont(titleFont);
+            ((TitledBorder)jAppToolBar_Advanced.getBorder()).setTitleFont(titleFont);
+        }
 
         Color bkgnd = jAppToolBar_File.getBackground(), title = ((TitledBorder)jAppToolBar_File.getBorder()).getTitleColor();
 //        System.out.println("bkgnd="+bkgnd);
@@ -3282,8 +3284,12 @@ public final class AppWindow extends javax.swing.JFrame implements MainWindowInt
             String log = PNMLFormat.importPNML(gspn, pnmlFile, id2name, null);
             if (log != null)
                 new ModalLogDialog(this, log).setVisible(true);
+            // check that a project is open
+            if (activeProject == null) {
+                throw new InvalidOperationException("Import of PNML files is only available inside a project. Please create one.");
+
             // Avoid duplicate page names
-            if (activeProject.getCurrent().findPageByName(gspn.getPageName()) != null)
+            } else if (activeProject.getCurrent().findPageByName(gspn.getPageName()) != null)
                 gspn.setPageName(generateUniquePageName(activeProject, gspn.getPageName()));
             
             executeUndoableCommand("import GSPN from PNML format.", new UndoableCommand() {

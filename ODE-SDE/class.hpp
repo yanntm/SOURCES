@@ -71,6 +71,7 @@
 #ifndef __MAP_H__
 #define __MAP_H__
 #include <map>
+#include <unordered_map>
 #endif
 
 #ifndef __TLT_H__
@@ -271,6 +272,15 @@ namespace SDE
     inline int getSizeP(void){return PSemiflow.size();};
     //!It returns IncDec of the ith component
     inline int getIncDec(int i){return LElem[i].getIncDec();};
+    inline int getIncDecTran(int tran){
+    int N=LElem.size();
+    for(int i=0;i<N; ++i){
+        if(LElem[i].getIdTran()==tran)
+            return LElem[i].getIncDec();
+    }
+    return 0;
+    }
+
     //!It returns IdTran of the ith component
     inline int  getIdTrans(int i){ return LElem[i].getIdTran();};
     inline void getPsemflw(int i, int& place, double& coff) {place=PSemiflow[i].Id; coff=PSemiflow[i].Card;};
@@ -313,8 +323,10 @@ namespace SDE
     class Equation* VEq {nullptr};
     //!it stores the current equation values (at time variable "time")
     double* Value {nullptr};
-    //!it stores the previous equation values (at time variable time")
+    //!it stores the previous equation values (at time variable "time")
     double* ValuePrv {nullptr};
+    //!it stores the derivative values for a fixed transition (at time variable "time")
+    double* DerivTAUG {nullptr};
     //!it stores the current enabling degree for continuous transition fire
     double* EnabledTransValueCon {nullptr};
     //!it stores the current enabling degree for discrete transition fire
@@ -353,15 +365,20 @@ namespace SDE
     double perc1 {0.5};
     //!It encodes the percentage of previous value used to determine h when the model is close to a bound
     double perc2 {0.01};
+    //!It encodes the epsilon used in the TAU leap algorithm
+    double epsTAU {0.01};
     //!It derived the place which are not directly computed (for ODE and SDE)
     void derived();
     //!It derived the place which are not directly computed from its input vector Value* (for ODE and SDE)
     void derived(double*);
+    //!It derived the place which are not directly computed. It ends as soon as negative value is derived.
+    void derived(bool&);
     //!From a place name it provides its position in NamePlaces.
     int search(string& name);
     //Max number of attempt used in RK
     int max_attempt {500};
-
+    //!It stores the used seed
+    long int seed {0};
 //automaton
 #ifdef AUTOMATON
     class automaton automaton;
@@ -371,10 +388,10 @@ namespace SDE
   public:
     //! Empty Constructor
     SystEq(void){};
-    //! Constructor it takes in input the total number of transitions and places and two vector with the names of places and transitions. Moreover the input parameter usedMin is true if transition infinity server policy is used, otherwise mass-product policy is used.
-    SystEq(int nPlaces,int nTrans, string NameTrans[], string NamePlaces[]);
+    //! Constructor it takes in input the total number of transitions and places, two vector with the names of places and transitions and  a seed  of random number generator. Moreover the input parameter usedMin is true if transition infinity server policy is used, otherwise mass-product policy is used.
+    SystEq(int nPlaces,int nTrans, string NameTrans[], string NamePlaces[],long int seed);
     //! Deconstruct
-    ~SystEq();
+    virtual ~SystEq();
     //! It stores the transition information. It takes in input the transition id and its information encodes on ``struct InfTr''
     void InsertTran(int num, struct InfTr T);
     //! It stores an equation. It takes in input the equation/place id, its information encodes on class Equation, its initial value and its bounds.
@@ -386,19 +403,24 @@ namespace SDE
 
     //!It computes the Tau taking as input the list of descrete transitions and the next time point. It returns a possible transition firing otherwise  -1. It requires that  getValTranFire() must be called before.
     int getComputeTau(int SetTran[], double& nextTimePoint,double t);
-    //! It is a pure virtual function which must be implemented
+    //!It computes the Tau according to Gillespie algorithm. It takes as input the list of descrete transitions and the next time point. It returns a possible transition firing otherwise  -1. It requires that  getValTranFire() must be called before.
+    double getComputeTauGillespie(int SetTran[],double t, double hstep);
+    //! It is a pure virtual function which must be implemented.
     virtual void getValTranFire()=0;
     virtual void getValTranFire(double*)=0;
-    //! It checks if there is an enable transition which will fire in the current time step;
+    //! It checks if there is an enable transition which will fire in the current time step.
     int fireEnableTrans(  int SetTran[],double& h);
     //int fireEnableTrans(  set<int>&SetTran,double& h);
-    //!It generates the brown noise value for all the transition involved  the diffusion process
+    //!It generates the brown noise value for all the transition involved  the diffusion process.
     bool setBNoiseTrans();
     //It generates the brown noise value for all the transition involved  the diffusion process
     void setBNoiseTrans(int);
-    //!It automaticaly updates  Euler step according to maximum transition increment
+    //!It automaticaly updates  Euler step according to maximum transition increment.
     void ComputeHstep(double& h);
     void ComputeHstep(const double& prv, const double& next, double& h);
+    //! It sets the epsilon used in the TAU algoritm.
+    void setEpsTAU(const double& epsTAU){this->epsTAU=epsTAU;};
+    long int getSeed();
 //automaton
 #ifdef AUTOMATON
      /*!
@@ -409,12 +431,14 @@ namespace SDE
 #endif
 //automaton
 
-    //It returns the brown noise value for the input transition.
+    //!It returns the brown noise value for the input transition.
     inline double getBNoiseTran(int Tran) {return Trans[Tran].BrownNoise;};
-    //It reads from a file the softh lower and upper bounds.
+    //!It reads from a file the softh lower and upper bounds.
     bool readSLUBounds(const string& file);
-    //It reads from a file the initial marking.
+    //!It reads from a file the initial marking.
     bool readInitialMarking(const string& file);
+    //!It reads from a file new place markings and new transition rates
+    bool readParameter(const string& file);
     //! It resets the list of enable transition
     void resetTrans();
     //! It solves the ODE system using Euler method. It takes in input the step size and the Max_Time
@@ -435,6 +459,18 @@ namespace SDE
     void SolveHODEEuler(double h,double prec1,double prec2,double Max_Time,int Max_Run, bool Info,double Print_Step,char *argv);
     //! It solves the HODE system using Tauleaping and LSODE.It takes in input the step size, the Max_Time and Max_Run. To print the trace of each run -> Info = true
     void SolveHLSODE(double h,double perc1,double perc2,double Max_Time,int Max_Run,bool Info,double Print_Step,char *argv);
+    //! It solves the  system using SSA method.It takes in input the step size, the Max_Time and Max_Run. To print the trace of each run -> Info = true
+    void SolveSSA(double h,double perc1,double perc2,double Max_Time,int Max_Run,bool Info,double Print_Step,char *argv);
+     //! It solves the ODE system using  tau-leaping method  method. It returns the computed tau.
+    void SolveTAUG(double Max_Time,int Max_Run,bool Info,double Print_Step,char *argv);
+    //! It computes the sixth-order approximation of the derivative according to the Richardson's Extrapolation formula.
+    double DerivApproximation(double *ValuePrv, map <string,int>& NumTrans, map <string,int>& NumPlaces,const vector<string> & NameTrans, const struct InfTr* Trans, const int T, const double& time, double hstep, int ider);
+    //! They need for the sixth-order approximation of the derivative according to the Richardson's Extrapolation formula.
+    double RichardsonExtrap(double *ValuePrv, map <string,int>& NumTrans, map <string,int>& NumPlaces,const vector<string> & NameTrans, const struct InfTr* Trans, const int T, const double& time, double hstep, int ider);
+    /*
+    double L(double *ValuePrv, map <string,int>& NumTrans, map <string,int>& NumPlaces,const vector<string> & NameTrans, const struct InfTr* Trans, const int T, const double& time, int hstep, int ider );
+    double S(double *ValuePrv, map <string,int>& NumTrans, map <string,int>& NumPlaces,const vector<string> & NameTrans, const struct InfTr* Trans, const int T, const double& time, int hstep, int ider );
+    */
     //! It computes an estimation for the Euler step
     void HeuristicStep(double h,double perc1,double perc2,double Max_Time,bool Info,double Print_Step,char *argv);
     //! It prints a matrix PlacesXRuns with the final computed values
@@ -445,23 +481,23 @@ namespace SDE
   class SystEqMin:public SystEq
   {
     public:
-    SystEqMin(int nPlaces, int nTrans, string NameTrans[], string NamePlaces[]):SystEq(nPlaces,nTrans,NameTrans,NamePlaces){typeTfunction="Min";};
-    ~SystEqMin(){};
+    SystEqMin(int nPlaces, int nTrans, string NameTrans[], string NamePlaces[],long int seed):SystEq(nPlaces,nTrans,NameTrans,NamePlaces,seed){typeTfunction="Min";};
+    virtual ~SystEqMin();
     //! For each transition it returns  the min of the values of its input places
-     void getValTranFire();
+     virtual void getValTranFire() override;
      //! For each transition it returns  the min of the values of its input places considering its input vector ValuePrv as marking
-     void getValTranFire(double* ValuePrv);
+     virtual void getValTranFire(double* ValuePrv) override;
   };
 
   class SystEqMas:public SystEq
   {
     public:
-    SystEqMas(int nPlaces, int nTrans, string NameTrans[], string NamePlaces[]):SystEq(nPlaces,nTrans,NameTrans,NamePlaces){typeTfunction="Prod";};
-    //~SystEqMas():~SystEq(){};
+    SystEqMas(int nPlaces, int nTrans, string NameTrans[], string NamePlaces[],long int seed):SystEq(nPlaces,nTrans,NameTrans,NamePlaces,seed){typeTfunction="Prod";};
+    virtual ~SystEqMas();
     //! For each transition it returns the product  of the values of its input places
-     void getValTranFire();
+    virtual void getValTranFire() override;
     //! For each transition it returns  the min of the values of its input places considering its input vector ValuePrv as marking
-    void getValTranFire(double* ValuePrv);
+    virtual void getValTranFire(double* ValuePrv) override;
   };
 
 //  double Fg(double *Value, vector <string>& NameTrans, vector <string>& NamePlaces);

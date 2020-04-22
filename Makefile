@@ -25,6 +25,11 @@ AR := $(AR) rcs
 CFLAGS ?= -O2
 CPPFLAGS ?= $(CFLAGS)
 LDFLAGS ?= -O2
+
+ifdef STATIC_LINK
+	LDFLAGS += -static
+endif
+
 # LDFLAGS ?= -g
 INCLUDES ?= 
 LEXFLAGS ?=
@@ -51,9 +56,6 @@ MOTIF-INCLUDE :=
 MOTIF-LIB := 
 
 OPENGL-LIB := -lGL -lGLU -lglut
-
-BOOST_Cxx=/usr/include
-BOOST_Cxx_LIB=/usr/lib
 
 # Destination directories
 OBJDIR := objects
@@ -103,7 +105,6 @@ ifeq ($(UNAME_S),Darwin)
 			  -Wno-implicit-int -Wno-empty-body
 
 endif
-INCLUDE_ELVIO_CPP_SOLVER := 0
 
 ### - Platform-specific variations - ###
 ifneq (,$(findstring Microsoft,$(UNAME_R)))
@@ -255,6 +256,30 @@ else
   LINK_LP_SOLVE_LIB := -L$(IDIR)/lib -llpsolve55
   INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1 -I$(IDIR)/include/
 endif
+# $(info LP_SOLVE_LIB  $(HAS_LP_SOLVE_LIB)  $(LINK_LP_SOLVE_LIB)  $(INCLUDE_LP_SOLVE_LIB))
+
+# LP_SOLVE_LIB_1 := /usr/include/lpsolve/lp_lib.h
+# LP_SOLVE_LIB_2 := /usr/local/include/lp_lib.h
+# LP_SOLVE_LIB_3 := /usr/local/include/lpsolve/lp_lib.h
+# ifeq ($(wildcard $(LP_SOLVE_LIB_1)),)
+#   ifeq ($(wildcard $(LP_SOLVE_LIB_2)),)
+#     ifeq ($(wildcard $(LP_SOLVE_LIB_3)),)
+#       $(warning "The lp-solve package is not installed. Some packages will not be compiled.")
+#     else
+#       HAS_LP_SOLVE_LIB := 1
+#       LINK_LP_SOLVE_LIB := -L/usr/local/lib -llpsolve55
+#       INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1 -I/usr/local/include/lpsolve/
+#     endif
+#   else
+#     HAS_LP_SOLVE_LIB := 1
+#     LINK_LP_SOLVE_LIB := -L/usr/local/lib -llpsolve55 -lcolamd
+#     INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1
+#   endif
+# else
+#   HAS_LP_SOLVE_LIB := 1
+#   LINK_LP_SOLVE_LIB := -L/usr/lib64 -L/usr/lib/lp_solve/ -llpsolve55 -ldl -lcolamd
+#   INCLUDE_LP_SOLVE_LIB := -DHAS_LP_SOLVE_LIB=1 -I/usr/include/lpsolve/
+# endif
 
 GMP_LIBRARY_0 := $(IDIR)/include/gmpxx.h
 GMP_LIBRARY_1 := /usr/include/gmpxx.h
@@ -279,46 +304,60 @@ else
   INCLUDE_GMP_LIBRARY := -DHAS_GMP_LIBRARY=1
 endif
 
-ifeq ($(shell which javac),)
-  $(warning "Java JDK is not installed. Some packages will not compile properly.")
-else
-  HAS_JAVA_DEVELOPMENT_KIT := 1
-  # Test for Apache ANT
-  ifeq ($(shell which ant),)
-    $(warning "Apache ANT build system is not installed. Some packages will not compile properly.")
-  else
-    HAS_APACHE_ANT := 1
-  endif
-  # Test for ANTLR version 4
-  # ifeq ($(shell which antlr4),)
-  #   $(warning "ANTLRv4 is not installed. Some packages will not compile properly.")
-  # else
-  #   HAS_ANTLRv4 := 1
-  # endif
-endif
+$(call search_file,JAVA_DEVELOPMENT_KIT,$(shell which javac))
+$(call warn_missing,JAVA_DEVELOPMENT_KIT,Java JDK)
 
-ifeq ($(wildcard $(BOOST_Cxx)/boost/config.hpp), )
-  $(warning "Boost C++ is not installed. Some packages will not be compiled.")
-else
-  HAVE_BOOST_Cxx := 1
-endif
+$(call search_file,APACHE_ANT,$(shell which ant))
+$(call warn_missing,APACHE_ANT,Apache ANT)
 
-ifeq ($(wildcard JavaGUI/launch4j-macosx/launch4j.jar), )
-  #$(warning "Boost C++ is not installed. Some packages will not be compiled.")
-else
-  HAVE_LAUNCH4J := 1
-endif
+# ifeq ($(shell which javac),)
+#   $(warning "Java JDK is not installed. Some packages will not compile properly.")
+# else
+#   HAS_JAVA_DEVELOPMENT_KIT := 1
+#   # Test for Apache ANT
+#   ifeq ($(shell which ant),)
+#     $(warning "Apache ANT build system is not installed. Some packages will not compile properly.")
+#   else
+#     HAS_APACHE_ANT := 1
+#   endif
+#   # Test for ANTLR version 4
+#   # ifeq ($(shell which antlr4),)
+#   #   $(warning "ANTLRv4 is not installed. Some packages will not compile properly.")
+#   # else
+#   #   HAS_ANTLRv4 := 1
+#   # endif
+# endif
+
+$(call search_lib,BOOST_CXX_LIB,/usr/local/lib/libboost_context.*)
+$(call search_lib,BOOST_CXX_LIB,/usr/lib/libboost_context.*)
+$(call search_lib,BOOST_CXX_LIB,/usr/lib64/libboost_context.*)
+$(call warn_missing,BOOST_CXX_LIB,Boost C++ library)
+# $(info BOOST_CXX_LIB  $(HAS_BOOST_CXX_LIB)  $(LINK_BOOST_CXX_LIB)  $(INCLUDE_BOOST_CXX_LIB))
+
+# ifeq ($(wildcard $(BOOST_Cxx)/boost/config.hpp), )
+#   $(warning "Boost C++ is not installed. Some packages will not be compiled.")
+# else
+#   HAS_BOOST_CXX_LIB := 1
+# endif
+
+# ifeq ($(wildcard JavaGUI/launch4j-macosx/launch4j.jar), )
+#   #$(warning ".")
+# else
+#   ifdef LAUNCH4J
+#     HAVE_LAUNCH4J := 1
+#   endif
+# endif
 
 
 ifneq ("$(wildcard /home/user/Desktop/HowToODE-SDE)","")
   IS_VBOX_VERSION71 := 1
-  $(warning "GreatSPN virtual machine version 7.1")
+  $(info "GreatSPN virtual machine version 7.1")
 endif
 
 ifneq ("$(wildcard /home/user/.greatspn-on-vbox)","")
   IS_VBOX_VERSION71 := 1
   HAS_VBOX_MARK := 1
-  $(warning "This is the GreatSPN distribution on the virtual machine")
+  $(info "This is the GreatSPN distribution on the virtual machine")
 endif
 
 ifeq ($(IS_VBOX_VERSION71),1)
@@ -331,6 +370,18 @@ endif
 
 ifeq ($(IS_VBOX_VERSION71),1)
   INCLUDE_ELVIO_CPP_SOLVER := 1
+endif
+ifneq ("$(wildcard ~/.extra-greatspn-solvers)","")
+  INCLUDE_ELVIO_CPP_SOLVER := 1
+endif
+
+ifeq ($(INCLUDE_ELVIO_CPP_SOLVER),1)
+  ifneq ($(wildcard JavaGUI/launch4j-macosx/launch4j.jar), )
+    ifdef LAUNCH4J
+      $(info Have Launch4j)
+      HAVE_LAUNCH4J := 1
+    endif
+  endif
 endif
 
 ifneq ("$(wildcard ../PRIVATE)","")
@@ -1976,7 +2027,7 @@ CSLTA_LDFLAGS :=  $(LDFLAGS) $(BOOST_Cxx_LIB)/lib/libboost_timer.a \
                   $(BOOST_Cxx_LIB)/lib/libboost_system.a \
                   $(BOOST_Cxx_LIB)/lib/libboost_chrono.a
 
-ifdef HAVE_BOOST_Cxx
+ifdef HAS_BOOST_CXX_LIB
   # TARGETS += CSLTA
 endif
 
@@ -2017,7 +2068,7 @@ $(OBJDIR)/DSPN-Tool/NSRC/DSPN-Tool/CSLTA.o: $(OBJDIR)/DSPN-Tool/NSRC/DSPN-Tool/n
 
 NSRC/DSPN-Tool/lexer.ll: $(OBJDIR)/DSPN-Tool/NSRC/DSPN-Tool/newparser.lyy.o bin/lemon
 
-DSPN-Tool_CPPFLAGS := -O2 -Wall $(ENABLE_Cxx14) -I$(BOOST_Cxx) \
+DSPN-Tool_CPPFLAGS := -O2 -Wall $(ENABLE_Cxx17) \
                       -Iobjects/DSPN-Tool/NSRC/DSPN-Tool/ \
                       -Wno-unused-function \
                       -DNDEBUG=1 
@@ -2038,7 +2089,6 @@ NSRC/DSPN-Tool/lexer.ll: $(OBJDIR)/DSPN-Tool-Debug/NSRC/DSPN-Tool/newparser.lyy.
 DSPN-Tool-Debug_SOURCES := $(DSPN-Tool_SOURCES)
 DSPN-Tool-Debug_CPPFLAGS := -Wall $(ENABLE_Cxx17) \
                       		-Iobjects/DSPN-Tool-Debug/NSRC/DSPN-Tool/ \
-                      		-I$(BOOST_Cxx) \
                       		-g -Wall -Wextra -Wno-unused-parameter \
                       		-Wno-unused-function \
                        		-DUSE_PRIVATE_TYPES=1 -D_GLIBCXX_DEBUG=1
@@ -2092,7 +2142,9 @@ first_CFLAGS := $(GreatSPN_CFLAGS)
 first_LDFLAGS := $(GreatSPN_LDFLAGS)
 
 ifdef HAS_OPENMOTIF_LIB
+  ifndef IS_WSL
 TARGETS += GreatSPN first
+  endif
 endif
 
 PrintCommand_SOURCEFILE := $(GREATSRC)/PrintCommand.csh
@@ -2483,6 +2535,10 @@ $(LEXDERIVEDSOURCES): $(OBJDIR)/%.l.c: $$(call rmprefix,%.l)
 	@$(MKDIR) $(dir $@)
 	@$($@_LEX) $($@_LEXFLAGS) -o $@ $^
 
+.SECONDEXPANSION:
+$(LEXDERIVEDHEADERS): $(OBJDIR)/%.l.h: $$(call rmprefix,%.l)
+	@
+
 ### Generation of the C/H files from a .y grammar ###
 .SECONDEXPANSION:
 $(YACCDERIVEDSOURCES): $(OBJDIR)/%.y.c: $$(call rmprefix,%.y)
@@ -2519,6 +2575,10 @@ $(LEXPPDERIVEDSOURCES): $(OBJDIR)/%.ll.cpp: $$(call rmprefix,%.ll)
 	@echo "  [LEX] " $<
 	@$(MKDIR) $(dir $@)
 	@$($@_LEXPP) $($@_LEXPPFLAGS) -o $@ $^
+
+.SECONDEXPANSION:
+$(LEXPPDERIVEDHEADERS): $(OBJDIR)/%.ll.h: $$(call rmprefix,%.ll)
+	@
 
 ### Generation of the CPP/H files from a Yacc++ grammar ###
 .SECONDEXPANSION:

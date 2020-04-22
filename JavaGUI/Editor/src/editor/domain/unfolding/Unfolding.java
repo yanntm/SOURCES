@@ -65,6 +65,9 @@ public class Unfolding {
     // all its unfolded transitions.
     public Map<Transition, List<Transition>> trnUnfolding = new HashMap<>();
     
+    // Use evaluation cache (speeds up unfolding)
+    public boolean useEvaluationCache = false;
+    
     public Unfolding(GspnPage gspn) {
         this.gspn = gspn;
         unfolded = new GspnPage();
@@ -259,6 +262,7 @@ public class Unfolding {
                             // Select the unfolded places connected to this edge
 //                            int countNumEdges = 0;
                             ValuedMultiSet vmset = (ValuedMultiSet)arcMult;
+//                            System.out.println(edge.getMultiplicity() + " = " + vmset);
                             for (int el=0; el < vmset.numElements(); el++) {
                                 DomainElement elem = vmset.getElement(el);
                                 EvaluatedFormula newArcMult = vmset.getValue(el);
@@ -327,8 +331,10 @@ public class Unfolding {
         try {
             context = new ParserContext(gspn);
             context.templateVarsBinding = new TemplateBinding();
-//            context.evaluationCache = new HashMap<>();
-//            context.reduceCache = new HashMap<>();
+            if (useEvaluationCache) {
+                context.evaluationCache = new HashMap<>();
+                context.reduceCache = new HashMap<>();
+            }
             gspn.compileParsedInfo(context);
         }
         catch (Exception e) {

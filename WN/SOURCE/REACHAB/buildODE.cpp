@@ -437,9 +437,10 @@ void build_ODE(ofstream &out, std::string path, std::string net)
     out << " time_t time_1,time_4;\n";
     out<<  " int who = RUSAGE_SELF;\n struct rusage usage;\n";
     out << " int SOLVE = 7, runs=1;\n";
+    out << " long int seed = 0;\n";
     out << " bool OUTPUT=false;\n";
-    out << " std::string fbound=\"\", finit=\"\";\n";
-    out << " double hini = 1e-6, atol = 1e-6, rtol=1e-6, ftime=1.0, stime=0.0;\n\n";
+    out << " std::string fbound=\"\", finit=\"\", fparm=\"\";\n";
+    out << " double hini = 1e-6, atolODE = 1e-6, rtolODE=1e-6, ftime=1.0, stime=0.0, epsTAU=0.1;\n\n";
     out << " cout<<\"\\n\\n =========================================================\\n\";\n";
     out << " cout<<\"|	              ODE/SDE Solver                       |\\n\";\n";
     out << " cout<<\" =========================================================\\n\";\n";
@@ -460,18 +461,19 @@ void build_ODE(ofstream &out, std::string path, std::string net)
         out << " std::cerr<<\"\\n\\nUSE:" << net << "_solve <out_file> [OPTIONS]\";\n\t";
     }
     //automaton
-    out<<"std::cerr<<\"\\n\\n\\tOPTIONS\\n\";\n";
-    out << " std::cerr<<\"\\n\\t -type <type>:\\t\\t ODE-E or ODE-RKF or ODE45 or LSODA or HLSODA or (H)SDE or HODE or SIM or STEP. Default: LSODA \";\n\t";
+    out<<"std::cerr<<\"\\n\\n\\tOPTIONS\\n\";\n\t";
+    out << " std::cerr<<\"\\n\\t -type <type>:\\t\\t ODE-E or ODE-RKF or ODE45 or LSODA or HLSODA or (H)SDE or HODE or SSA or TAUG or STEP. Default: LSODA \";\n\t";
     out << " std::cerr<<\"\\n\\t -hini <double>:\\t Initial step size. Default: 1e-6\";\n\t";
-      out << " std::cerr<<\"\\n\\t -atol <double>:\\t Absolute error tolerance. Dafault: 1e-6\";\n\t";
+    out << " std::cerr<<\"\\n\\t -atol <double>:\\t Absolute error tolerance. Dafault: 1e-6\";\n\t";
     out << " std::cerr<<\"\\n\\t -rtol <double>:\\t Relative error tolerance. Dafault: 1e-6\";\n\t";
-    //out << " std::cerr<<\"\\n\\t <atol>:\\tValue used to compute Euler Step when the model is closed to bounds (smaller -> greater precision but slower solution)\";\n\t";
-    //out << " std::cerr<<\"\\n\\t <rtol>:\\t Value used to compute Step (smaller -> greater precision but slower solution)\";\n\t";
-    out << " std::cerr<<\"\\n\\t -runs <int>:\\t\\t Integer number corresponding to runs (only used in SIM, HODE,HLSODA). Default: 1\";\n\t";
+    out << " std::cerr<<\"\\n\\t -taueps <double>:\\t Epsilon value for Tau-leaping algorithm. Dafault: 0.1\";\n\t";
+    out << " std::cerr<<\"\\n\\t -runs <int>:\\t\\t Integer number corresponding to runs (only used in SSA,TAUG, HODE,HLSODA). Default: 1\";\n\t";
     out << " std::cerr<<\"\\n\\t -ftime <double>:\\t Double number used to set the upper bound of the evolution time. Dafault: 1\";\n\t";
     out << " std::cerr<<\"\\n\\t -stime <double>:\\t Double number used to set the step in the output. Default: 0.0 (no output)\";\n\t";
     out << " std::cerr<<\"\\n\\t -b <bound_file>:\\t Soft bound are defined in the file <bound_file>\";\n\t";
+    out << " std::cerr<<\"\\n\\t -seed <double>:\\t Seed of random number generator\";\n\t";
     out << " std::cerr<<\"\\n\\t -init <init_file>:\\t The file <initial_file> contains the initial marking. Default:  initial marking in the orginal net\";\n\t";
+    out << " std::cerr<<\"\\n\\t -parm <parm_file>:\\t The file <parm_file> contains a set of pairs with format <transition name> <value> or <place name> <value>.\\n\\t\\t\\t\\t For transition  the value is used to set a new rate value, while for place  it is used to set a new initial marking.\";\n\t";
     //automaton
     if (AUTOMATON)
         out << " std::cerr<<\"\\n\\t <automaton_file>:\\t automaton is defined in the file <automaton>\\n\";";
@@ -488,19 +490,21 @@ void build_ODE(ofstream &out, std::string path, std::string net)
         out<<"\t if (strcmp(\"-type\", argv[ii])==0){\n";
             out<<"\t\t if (++ii<argc){\n";
                 out << "\t\t\t if ((strcmp(argv[ii],\"ODE-E\")==0)||(strcmp(argv[ii],\"ode-e\")==0)) SOLVE = 1;\n";
-                out << "\t\t\t if ((strcmp(argv[ii],\"ODE-RKF\")==0)||(strcmp(argv[ii],\"ode-rkf\")==0)) SOLVE = 5;\n";
-                out << "\t\t\t if ((strcmp(argv[ii],\"ODE45\")==0)||(strcmp(argv[ii],\"ode45\")==0)) SOLVE = 6;\n";
-                out << "\t\t\t if ((strcmp(argv[ii],\"LSODA\")==0)||(strcmp(argv[ii],\"lsoda\")==0)) SOLVE = 7;\n";
-                out << "\t\t\t if ((strcmp(argv[ii],\"STEP\")==0)||(strcmp(argv[ii],\"step\")==0)) SOLVE = 4;\n";
-                out << "\t\t\t if ((strcmp(argv[ii],\"SIM\")==0)||(strcmp(argv[ii],\"sim\")==0)){\n";
-                out << "\t\t\t\t cout<<\"\\t using simulation\"<<endl;\n\t\t\t\t epsilon=10000000000;\n\t\t\t\t hini=MAXSTEP;\n\t\t\t\t SOLVE=3;\n\t\t\t }\n";
-                out << "\t\t\t if ((strcmp(argv[ii],\"HODE\")==0)||(strcmp(argv[ii],\"hode\")==0)) SOLVE = 2;\n";
-                out << "\t\t\t if ((strcmp(argv[ii],\"HLSODA\")==0)||(strcmp(argv[ii],\"hlsoda\")==0)) SOLVE = 8;\n";
-                out << "\t\t\t if ((strcmp(argv[ii],\"SDE\")==0)||(strcmp(argv[ii],\"sde\")==0) || (strcmp(argv[ii],\"HSDE\")==0)||(strcmp(argv[ii],\"hsde\")==0) ) SOLVE = 0;\n";
-            out<<"\t\t }\n";
-            out<<"\t\t else{\n";
-                out<< "\t\t\t std::cerr<<\"\\nError:  -type  <value>\\n\";\n\t\t\t exit(EXIT_FAILURE);\n\t\t }\n";
-            out<<"\t\t continue;\n";
+                out << "\t\t\t else if ((strcmp(argv[ii],\"ODE-RKF\")==0)||(strcmp(argv[ii],\"ode-rkf\")==0)) SOLVE = 5;\n";
+                out << "\t\t\t else if ((strcmp(argv[ii],\"ODE45\")==0)||(strcmp(argv[ii],\"ode45\")==0)) SOLVE = 6;\n";
+                out << "\t\t\t else if ((strcmp(argv[ii],\"LSODA\")==0)||(strcmp(argv[ii],\"lsoda\")==0)) SOLVE = 7;\n";
+                out << "\t\t\t else if ((strcmp(argv[ii],\"STEP\")==0)||(strcmp(argv[ii],\"step\")==0)) SOLVE = 4;\n";
+                out << "\t\t\t else if ((strcmp(argv[ii],\"SSA\")==0)||(strcmp(argv[ii],\"ssa\")==0)){\n";
+                //out << "\t\t\t\t cout<<\"\\t using simulation\"<<endl;\n\t\t\t\t epsilon=10000000000;\n\t\t\t\t hini=MAXSTEP; \n\t\t\t\t SOLVE=3;\n\t\t\t }\n";
+                out << "\n\t\t\t\t SOLVE=3;\n\t\t\t }\n";
+                out << "\t\t\t else if ((strcmp(argv[ii],\"HODE\")==0)||(strcmp(argv[ii],\"hode\")==0)) SOLVE = 2;\n";
+                out << "\t\t\t else if ((strcmp(argv[ii],\"HLSODA\")==0)||(strcmp(argv[ii],\"hlsoda\")==0)) SOLVE = 8;\n";
+                out << "\t\t\t else if ((strcmp(argv[ii],\"SDE\")==0)||(strcmp(argv[ii],\"sde\")==0) || (strcmp(argv[ii],\"HSDE\")==0)||(strcmp(argv[ii],\"hsde\")==0) ) SOLVE = 0;\n";
+                out << "\t\t\t else if ((strcmp(argv[ii],\"TAUG\")==0)||(strcmp(argv[ii],\"taug\")==0)) SOLVE = 9;\n";
+                 out<<"\t\t\t else{\n";
+                out<< "\t\t\t\t std::cerr<<\"\\n\\tError:  -type  <value>\\n\\n\";\n\t\t\t exit(EXIT_FAILURE);\n\t\t }\n";
+                out<<"\t\t }\n";
+                out<<"\t\t continue;\n";
         out<<"\t }\n";
  //hini code
         out<<"\t if (strcmp(\"-hini\", argv[ii])==0){\n";
@@ -513,7 +517,7 @@ void build_ODE(ofstream &out, std::string path, std::string net)
  //atol code
         out<<"\t if (strcmp(\"-atol\", argv[ii])==0){\n";
             out<<"\t\t if (++ii<argc){\n";
-                out<<"\t\t\t atol=atof(argv[ii]);\n\t\t }\n";
+                out<<"\t\t\t atolODE=atof(argv[ii]);\n\t\t }\n";
             out<<"\t\t else{\n";
                 out<< "\t\t\t std::cerr<<\"\\nError:  -atol  <value>\\n\";\n\t\t\t exit(EXIT_FAILURE);\n\t\t }\n";
         out<<"\t\t continue;\n";
@@ -521,7 +525,7 @@ void build_ODE(ofstream &out, std::string path, std::string net)
  //rtol code
         out<<"\t if (strcmp(\"-rtol\", argv[ii])==0){\n";
             out<<"\t\t if (++ii<argc){\n";
-                out<<"\t\t\t rtol=atof(argv[ii]);\n\t\t }\n";
+                out<<"\t\t\t rtolODE=atof(argv[ii]);\n\t\t }\n";
             out<<"\t\t else{\n";
                 out<< "\t\t\t std::cerr<<\"\\nError:  -rtol  <value>\\n\";\n\t\t\t exit(EXIT_FAILURE);\n\t\t }\n";
         out<<"\t\t continue;\n";
@@ -561,6 +565,23 @@ void build_ODE(ofstream &out, std::string path, std::string net)
                 out<< "\t\t\t std::cerr<<\"\\nError:  -b  <file_name>\\n\";\n\t\t\t exit(EXIT_FAILURE);\n\t\t }\n";
         out<<"\t\t continue;\n";
         out<<"\t }\n";
+//epsilon TAUleaping
+        out<<"\t if (strcmp(\"-taueps\", argv[ii])==0){\n";
+            out<<"\t\t if (++ii<argc){\n";
+                out<<"\t\t\t epsTAU=atof(argv[ii]);\n\t\t }\n";
+            out<<"\t\t else{\n";
+                out<< "\t\t\t std::cerr<<\"\\nError:  -taueps  <value>\\n\";\n\t\t\t exit(EXIT_FAILURE);\n\t\t }\n";
+        out<<"\t\t continue;\n";
+        out<<"\t }\n";
+
+//seed of random number generator
+        out<<"\t if (strcmp(\"-seed\", argv[ii])==0){\n";
+            out<<"\t\t if (++ii<argc){\n";
+                out<<"\t\t\t seed=atol(argv[ii]);\n\t\t }\n";
+            out<<"\t\t else{\n";
+                out<< "\t\t\t std::cerr<<\"\\nError:  -seed  <value>\\n\";\n\t\t\t exit(EXIT_FAILURE);\n\t\t }\n";
+        out<<"\t\t continue;\n";
+        out<<"\t }\n";
 
 
 //initial file code
@@ -571,30 +592,20 @@ void build_ODE(ofstream &out, std::string path, std::string net)
                 out<< "\t\t\t std::cerr<<\"\\nError:  -init  <file_name>\\n\";\n\t\t\t exit(EXIT_FAILURE);\n\t\t }\n";
         out<<"\t\t continue;\n";
         out<<"\t }\n";
+
+        out<<"\t if (strcmp(\"-parm\", argv[ii])==0){\n";
+            out<<"\t\t if (++ii<argc){\n";
+                out<<"\t\t\t fparm=string(argv[ii]);\n\t\t }\n";
+            out<<"\t\t else{\n";
+                out<< "\t\t\t std::cerr<<\"\\nError:  -parm  <file_name>\\n\";\n\t\t\t exit(EXIT_FAILURE);\n\t\t }\n";
+        out<<"\t\t continue;\n";
+        out<<"\t }\n";
+
         out<< "\t\t\t std::cerr<<\"\\nError:  unknown parameter \"<<argv[ii]<<\"\\n\\n\";\n\t\t\t exit(EXIT_FAILURE);\n";
     out<<" }\n\n\n";
 
 
     out<<" if (stime==0.0)  stime=ftime;\n\n";
-
-    //out << " double step=atof(argv[3]);\n";
-    //out << " double atol=atof(argv[4]);\n";
-    //out << " double perc2=atof(argv[5]);\n";
-   // out << " int  runs=atoi(argv[6]);\n";
-    //out << " double Max_time=atof(argv[7]);\n\n";
-    //out << " if ((strcmp(argv[2],\"ODE-E\")==0)||(strcmp(argv[2],\"ode-e\")==0))\n\t SOLVE = 1;\n";
-    //out << " if ((strcmp(argv[2],\"ODE-RKF\")==0)||(strcmp(argv[2],\"ode-rkf\")==0))\n\t SOLVE = 5;\n";
-   // out << " if ((strcmp(argv[2],\"ODE45\")==0)||(strcmp(argv[2],\"ode45\")==0))\n\t SOLVE = 6;\n";
-    //out << " if ((strcmp(argv[2],\"LSODA\")==0)||(strcmp(argv[2],\"lsoda\")==0))\n\t SOLVE = 7;\n";
-    //out << " if ((strcmp(argv[2],\"STEP\")==0)||(strcmp(argv[2],\"step\")==0))\n\t SOLVE = 4;\n";
-    //out << " if ((strcmp(argv[2],\"SIM\")==0)||(strcmp(argv[2],\"sim\")==0))\n\t{\n";
-   // out << "\t cout<<\"\\t using simulation\"<<endl;\n\t epsilon=10000000000;\n\t hini=MAXSTEP;\n\t SOLVE=3;\n\t}\n";
-   // out << " if ((strcmp(argv[2],\"HODE\")==0)||(strcmp(argv[2],\"hode\")==0))\n\t SOLVE = 2;\n";
-   // out << " if ((strcmp(argv[2],\"HLSODA\")==0)||(strcmp(argv[2],\"hlsoda\")==0))\n\t SOLVE = 8;\n";
-   // out << " if ((strcmp(argv[2],\"SDE\")==0)||(strcmp(argv[2],\"sde\")==0) || (strcmp(argv[2],\"HSDE\")==0)||(strcmp(argv[2],\"hsde\")==0) )\n\t SOLVE = 0;\n";
-
-    //out << " if ((!strcmp(argv[8],\"true\"))||(!strcmp(argv[6],\"TRUE\")))\n\t OUTPUT= true;\n";
-    //out << " double step_o=atof(argv[9]);\n";
 
     out << " time(&time_1);\n\n";
 
@@ -606,12 +617,14 @@ void build_ODE(ofstream &out, std::string path, std::string net)
         out << " cout<<\"\\tTransition policy: Minimum\\n\";\n";
     out << " cout<<\"\\tSolution final time: \"<<ftime<<\"\\n\";\n";
     out << " cout<<\"\\tInitial size step: \"<<hini<<\"\\n\";\n";
-    out << " cout<<\"\\tAbosolute tolerance: \"<<atol<<\"\\n\";\n";
-    out << " cout<<\"\\tRelative tolerance: \"<<rtol<<\"\\n\";\n";
+    out << " cout<<\"\\tAbosolute tolerance: \"<<atolODE<<\"\\n\";\n";
+    out << " cout<<\"\\tRelative tolerance: \"<<rtolODE<<\"\\n\";\n";
     //out << " if ((strcmp(argv[2],\"ODE\")!=0)&&(strcmp(argv[2],\"ode\")!=0)){\n";
+    out << " cout<<\"\\tEpsilon value for TAU-leaping: \"<<epsTAU<<\"\\n\";\n";
     out << " cout<<\"\\tSolution runs: \"<<runs<<\"\\n\";\n";
     out << " if (fbound!=\"\") cout<<\"\\tBound file: \"<<fbound<<\"\\n\";\n";
     out << " if (finit!=\"\") cout<<\"\\tInitial marking file: \"<<finit<<\"\\n\";\n";
+    out << " if (fparm!=\"\") cout<<\"\\tInitial parameter file: \"<<fparm<<\"\\n\";\n";
     //automaton
     if (AUTOMATON)
         out << " cout<<\"\\tAutomaton input: \"<<argv[2]<<\"\\n\";\n";
@@ -625,9 +638,9 @@ void build_ODE(ofstream &out, std::string path, std::string net)
     out << " struct InfTr t;\n";
     out << " Equation eq;\n Elem el;\n";
     if (MASSACTION)
-        out << " SystEqMas se(" << npl << "," << ntr << ",places,transitions);\n";
+        out << " SystEqMas se(" << npl << "," << ntr << ",places,transitions,seed);\n";
     else
-        out << " SystEqMin se(" << npl << "," << ntr << ",places,transitions);\n";
+        out << " SystEqMin se(" << npl << "," << ntr << ",places,transitions,seed);\n";
     out << " vector< struct InfPlace> Vpl;\n\n";
     for (int tt = 0; tt < ntr; tt++)
     {
@@ -715,17 +728,18 @@ void build_ODE(ofstream &out, std::string path, std::string net)
     for (pp = 0; pp < npl; pp++)
     {
         out << "//Place " << tabp[pp].place_name << "\n eq.clear();\n";
-        if (implPlace.find(pp) == implPlace.end())   //explicit place
+//        if (implPlace.find(pp) == implPlace.end())   //explicit place
+//        {
+        for (int tt = 0; tt < ntr; tt++) //all places
         {
-            for (int tt = 0; tt < ntr; tt++)
+            if (TP[tt][pp] != 0)
             {
-                if (TP[tt][pp] != 0)
-                {
-                    out << " el.setIncDec(" << TP[tt][pp] << ");\n el.setIdTran(" << tt << ");\n eq.Insert(el);\n";
-                }
-            }//explicit place
-        }
-        else   // implicit place
+                out << " el.setIncDec(" << TP[tt][pp] << ");\n el.setIdTran(" << tt << ");\n eq.Insert(el);\n";
+            }
+        }//all places
+//        }
+//        else
+        if (implPlace.find(pp) != implPlace.end())// implicit place
         {
             out << " Vpl.clear();\n";
             list < pair<int, int> >::iterator it;
@@ -746,11 +760,11 @@ void build_ODE(ofstream &out, std::string path, std::string net)
 
  //if soft init file is specified
     out << "\n if (finit!=\"\") {\n\t if (!(se.readInitialMarking(finit))) exit(EXIT_FAILURE);\n }";
-
+    out << "\n if (fparm!=\"\") {\n\t if (!(se.readParameter(fparm))) exit(EXIT_FAILURE);\n }";
 
     //automaton
     cout << "\tDone.\n" << endl;
-
+    out << "\n se.setEpsTAU(epsTAU);\n";
     out << "\n se.Print();\n";
     //automaton
     if (AUTOMATON)
@@ -761,11 +775,11 @@ void build_ODE(ofstream &out, std::string path, std::string net)
     }
     //automaton
     out << "\n\ntry\t{";
-    out << "\n\tif (SOLVE==-1) \{\n\t\t cerr<< \"\\n\\nError: solution methods is not implemented\\nYou should use:  ODE-E or ODE-RKF or ODE45 or LSODA or SDE or HODE or HSDE or SIM or STEP\\n\"; \n\t\t exit(EXIT_FAILURE);\n\t}\n\n ";
+    out << "\n\tif (SOLVE==-1) \{\n\t\t cerr<< \"\\n\\nError: solution methods is not implemented\\nYou should use:  ODE-E or ODE-RKF or ODE45 or LSODA or SDE or HODE or HSDE or TAUG or SSA or STEP\\n\"; \n\t\t exit(EXIT_FAILURE);\n\t}\n\n ";
 
 
 
-    out << "\n\tif (SOLVE == 1)\n\t\t se.SolveODEEuler(hini,atol,rtol,ftime,OUTPUT,stime,argv[1]);\n\t else\n\t\t if (SOLVE == 0)\n\t\t\t se.SolveSDEEuler(hini,atol,rtol,ftime,runs,OUTPUT,stime,argv[1]);\n\t\t else \n\t\t\tif (SOLVE == 3)\n\t\t\t\t se.SolveHODEEuler(hini,atol,rtol,ftime,runs,OUTPUT,stime,argv[1]); \n\t\t\t else \n\t\t\t\t if (SOLVE == 4)\n\t\t\t\t\t  se.HeuristicStep(hini,atol,rtol,ftime,OUTPUT,stime,argv[1]);   \n\t\t\t\t else\n\t\t\t\t\t if (SOLVE == 5)\n\t\t\t\t\t  se.SolveODERKF(hini,atol,ftime,OUTPUT,stime,argv[1]);   \n\t\t\t\t else\n\t\t\t\t\tif (SOLVE == 6)\n\t\t\t\t\t\t se.SolveODE45(hini,atol,ftime,OUTPUT,stime,argv[1]);\n\t\t\t\t else\n\t\t\t\t\t if (SOLVE == 8)\n\t\t\t\t\t\t\t se.SolveHLSODE(hini,atol,rtol,ftime,runs,OUTPUT,stime,argv[1]);\n\t\t\t\t\t else \n\t\t\t\t\t\t\t se.SolveLSODE(hini,atol,rtol,ftime,OUTPUT,stime,argv[1]);\n";
+    out << "\n\tif (SOLVE == 1)\n\t\t se.SolveODEEuler(hini,atolODE,rtolODE,ftime,OUTPUT,stime,argv[1]);\n\t else\n\t\t if (SOLVE == 0)\n\t\t\t se.SolveSDEEuler(hini,atolODE,rtolODE,ftime,runs,OUTPUT,stime,argv[1]);\n\t\t else \n\t\t\tif (SOLVE == 3)\n\t\t\t\t se.SolveSSA(hini,atolODE,rtolODE,ftime,runs,OUTPUT,stime,argv[1]); \n\t\t\t else \n\t\t\t\t if (SOLVE == 4)\n\t\t\t\t\t  se.HeuristicStep(hini,atolODE,rtolODE,ftime,OUTPUT,stime,argv[1]);   \n\t\t\t\t else\n\t\t\t\t\t if (SOLVE == 5)\n\t\t\t\t\t  se.SolveODERKF(hini,atolODE,ftime,OUTPUT,stime,argv[1]);   \n\t\t\t\t else\n\t\t\t\t\tif (SOLVE == 6)\n\t\t\t\t\t\t se.SolveODE45(hini,atolODE,ftime,OUTPUT,stime,argv[1]);\n\t\t\t\t else\n\t\t\t\t\t if (SOLVE == 8)\n\t\t\t\t\t\t\t se.SolveHLSODE(hini,atolODE,rtolODE,ftime,runs,OUTPUT,stime,argv[1]);\n\t\t\t\t\t else \n\t\t\t\t\t\t\t if (SOLVE == 7) \n\t\t\t\t\t\t\t\t se.SolveLSODE(hini,atolODE,rtolODE,ftime,OUTPUT,stime,argv[1]);\n\t\t\t\t\t\t\t else  \n\t\t\t\t\t\t\t\t se.SolveTAUG(ftime,runs,OUTPUT,stime,argv[1]);";
     out << "\n\tse.PrintStatistic(argv[1]);\n\t}\n catch(Exception obj)\n\t{\n\tcerr<<endl<<obj.get()<<endl;\n\t}\n\n";
     out << " time(&time_4);\n\n cout<<\"\\n\\nEND EXECUTION\"<<endl;\n cout<<\"\\nResults are saved in: \"<<argv[1]<<endl;\n";
     out << " cout<<\"\\n=========================== TIME ===========================\\n\\n\\t\";\n";
@@ -1056,10 +1070,32 @@ void build_ODER(ofstream &out, std::string net)
         }
         //Encoding transition rates
         if (tabt[tt].rate_par_id>=0)
-            out<<tabt[tt].trans_name << " = "<<tabrp[tabt[tt].rate_par_id].rate_name<<"\n";
+            out<<tabt[tt].trans_name << " = "<<tabrp[tabt[tt].rate_par_id].rate_name;
         else
             if (tabt[tt].mean_t!=0)
-                out<<tabt[tt].trans_name << " = "<<tabt[tt].mean_t<< "\n";
+                out<<tabt[tt].trans_name << " = "<<tabt[tt].mean_t;
+
+        if (MASSACTION)
+                    {
+                    int elem=0;
+                    for (int pp1 = 0; pp1 < npl; pp1++){
+                //cout << "trans " << tabt[tt].trans_name << "-> " <<TPI[tt][pp1]<<"\n" ;
+                        if (TPI[tt][pp1] < - 1){
+                            if (elem>0){
+                                out<<" * factorial("<<abs(TPI[tt][pp1])<<")";
+                            }
+                            else{
+                                out<<" / ( factorial("<<abs(TPI[tt][pp1])<<")";
+                            }
+                            elem++;
+                        }
+
+                    }
+                    if (elem>0)
+                        out<<" )";
+                }
+        out<<"\n";
+
 #if DEBUG
         for (int i = 0; i < npl; i++)
             cout << "\t" << TP[tt][i];
@@ -1183,7 +1219,7 @@ void build_ODER(ofstream &out, std::string net)
     }
     out << ")\n";
     out<<"t1=Sys.time()";
-    out << "\nres1 <-lsode(yini,Times,funODE,parms=0,hini=hini)";
+    out << "\nres1 <-lsoda(yini,Times,funODE,parms=0,hini=hini)";
     out <<"\ncolnames(res1)= c(\"Time\"";
     for (pp = 0; pp < npl; pp++)
     {
@@ -1621,7 +1657,7 @@ void build_ODEOPT(ofstream &out, std::string net, std::string trans_path, std::s
     out << "fn <-function(x,y,hini,Time) { \n";
     out << "Times <- seq(from = TimeOLD, to = Time, by = step)\n";
 
-    out << "res <- lsode(y,Times,funODE,parms=x,hini=hini)\n";
+    out << "res <- lsoda(y,Times,funODE,parms=x,hini=hini)\n";
     out << "last=tail(res,1)\n";
 
     out << "fn="<<objlast_string<<"\n";
@@ -1802,7 +1838,28 @@ void build_ODEM(ofstream &out, std::string net)
             l_ptr = NEXT_NODE(l_ptr);
         }
         //Encoding transition rates
-        out << tabt[tt].trans_name << " = " << tabt[tt].mean_t << ";\n";
+        out << tabt[tt].trans_name << " = " << tabt[tt].mean_t;
+
+        if (MASSACTION)
+            {
+            int elem=0;
+            for (int pp1 = 0; pp1 < npl; pp1++){
+                cout << "trans " << tabt[tt].trans_name << "-> " <<TPI[tt][pp1]<<"\n" ;
+                if (TPI[tt][pp1] < - 1){
+                    if (elem>0){
+                        out<<" * factorial("<<abs(TPI[tt][pp1])<<")";
+                    }
+                    else{
+                        out<<" / ( factorial("<<abs(TPI[tt][pp1])<<")";
+                    }
+                    elem++;
+                }
+
+            }
+            if (elem>0)
+                out<<" )";
+        }
+        out<<";\n";
 
 #if DEBUG
         for (int i = 0; i < npl; i++)
@@ -1811,7 +1868,7 @@ void build_ODEM(ofstream &out, std::string net)
 #endif
     }
 
-    out << "%Transition rates\n\n";
+    out << "%End Transition rates\n\n";
 
 
     out << "%Place mapping\n";
@@ -1841,7 +1898,7 @@ void build_ODEM(ofstream &out, std::string net)
                     {
                         if (TPI[tt][pp1] < 0)
                         {
-                            out << " * " << tabp[pp1].place_name << "/" << abs(TPI[tt][pp1]);
+                            out << " * " << tabp[pp1].place_name << "^" << abs(TPI[tt][pp1]);
                         }
                     }
                 }

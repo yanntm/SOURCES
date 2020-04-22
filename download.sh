@@ -6,11 +6,17 @@
 # the required packages on some supported platforms.
 
 
+B1=""
+B0=""
+C1=""
+C0=""
 if [[ ! -z ${TERM} ]] ; then
-    B1=$(tput bold)
-    B0=$(tput sgr0)
-    C1=$(tput setaf 1)
-    C0=$(tput setaf 9)
+	if [ "${TERM}" != "dumb" ] ; then
+	    B1=$(tput bold)
+	    B0=$(tput sgr0)
+	    C1=$(tput setaf 1)
+	    C0=$(tput setaf 9)
+	fi
 fi
 LN="==============================================================================="
 
@@ -96,7 +102,7 @@ case ${PLATFORM} in
 		dnf -y install gcc gcc-c++ gmp-devel gmp-c++ gmp boost-devel flex-devel \
 					   ant glib2-devel patch python libxml-devel glpk-devel lpsolve-devel \
 					   autoconf automake libtool zip flex git \
-					   byacc time graphviz  motif-devel \
+					   byacc time graphviz suitesparse-devel motif-devel make \
 					   libxml++-devel glibmm24-devel lpsolve-devel \
 			|| fail "Could not install the required dependencies using dnf."
 		# Dependencies for the Virtual Box image.
@@ -249,8 +255,8 @@ if [[ $BUILD_GREATSPN == "Y" ]] ; then
 	(
 		cd SOURCES
 		CFLAGS="-O2 ${CFLAGS}" CPPFLAGS="-O2 ${CPPFLAGS}" LDFLAGS="-O2 ${LDFLAGS}" make -k ${MKFLAGS} derived_objects
-		CFLAGS="-O2 ${CFLAGS}" CPPFLAGS="-O2 ${CPPFLAGS}" LDFLAGS="-O2 ${LDFLAGS}" make -k ${MKFLAGS} derived_objects
-		CFLAGS="-O2 ${CFLAGS}" CPPFLAGS="-O2 ${CPPFLAGS}" LDFLAGS="-O2 ${LDFLAGS}" make -k ${MKFLAGS} 
+		# CFLAGS="-O2 ${CFLAGS}" CPPFLAGS="-O2 ${CPPFLAGS}" LDFLAGS="-O2 ${LDFLAGS}" make -k ${MKFLAGS} derived_objects
+		# CFLAGS="-O2 ${CFLAGS}" CPPFLAGS="-O2 ${CPPFLAGS}" LDFLAGS="-O2 ${LDFLAGS}" make -k ${MKFLAGS} 
 		CFLAGS="-O2 ${CFLAGS}" CPPFLAGS="-O2 ${CPPFLAGS}" LDFLAGS="-O2 ${LDFLAGS}" make -k ${MKFLAGS} \
 			|| fail "Could not compile GreatSPN. Check the log for errors."
 		# make install 

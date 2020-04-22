@@ -77,7 +77,7 @@ case "$1" in
 
     -F)
     if [ $# -gt 1 ]
-    then 
+    then
 	FUN_PATH="$2"
     else
         printf "**ERROR** You must specify a legal objective function file path after -F. \n\n"
@@ -162,8 +162,8 @@ fi
 
 if   [ "$EXPORT_FORMAT" == "-G" ]
 then
-	echo "Output files:" 
-	echo "	$NET_PATH.left_side"   
+	echo "Output files:"
+	echo "	$NET_PATH.left_side"
 	echo "	$NET_PATH.right_side"
 	echo "	$NET_PATH.M_0"
         echo "	$NET_PATH.M_feed "
@@ -172,10 +172,10 @@ then
 	exit 1
 fi
 
-NET_PATH="$(readlink $NET_PATH -m)"
+# NET_PATH="$(readlink $NET_PATH -m)"
+name_file=`perl -e "use File::Spec; print(File::Spec->rel2abs('${NET_PATH}'));"`
 
-
-export name_file=$NET_PATH;
+export name_file=${name_file}
 
 echo $name_file
 
@@ -232,14 +232,23 @@ else
 	echo
   fi
   cp ./lsode.* ${MyTempDir}
-  cp ./makefile ${MyTempDir} 
+  cp ./makefile ${MyTempDir}
    cd ${MyTempDir}
   echo "#cd ${MyTempDir}"
   echo
   echo "#Compiling ... "
   make  normal
+  if [ "$?" -ne 0 ]
+  then
+	echo -e "#Error during compilation. \n\n"
+	exit 1
+  fi
+ 
+
 fi
 
 echo
 echo "#Executable file: $NET_PATH.solver"
 echo
+
+exit 0
