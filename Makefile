@@ -291,17 +291,17 @@ ifeq ($(wildcard $(GMP_LIBRARY_1)),)
   else
     HAS_GMP_LIBRARY := 1
     LINK_GMP_LIBRARY := -L/usr/local/lib -lgmp -lgmpxx
-    INCLUDE_GMP_LIBRARY := -DHAS_GMP_LIBRARY=1
+    INCLUDE_GMP_LIBRARY := -DHAS_GMP_LIBRARY=1 -DHAS_GMP_LIB=1
   endif
 else
   HAS_GMP_LIBRARY := 1
   LINK_GMP_LIBRARY := -L/usr/lib -lgmp -lgmpxx
-  INCLUDE_GMP_LIBRARY := -DHAS_GMP_LIBRARY=1
+  INCLUDE_GMP_LIBRARY := -DHAS_GMP_LIBRARY=1 -DHAS_GMP_LIB=1
 endif
 else
   HAS_GMP_LIBRARY := 1
   LINK_GMP_LIBRARY := -L$(IDIR)/lib -lgmpxx -lgmp
-  INCLUDE_GMP_LIBRARY := -DHAS_GMP_LIBRARY=1
+  INCLUDE_GMP_LIBRARY := -DHAS_GMP_LIBRARY=1 -DHAS_GMP_LIB=1
 endif
 
 $(call search_file,JAVA_DEVELOPMENT_KIT,$(shell which javac))
@@ -1027,11 +1027,11 @@ TARGETS += RGMEDD2
 RGMEDD3_CFLAGS := $(CFLAGS) $(call generate_WN_FLAGS,TOOL_RGMEDD3,RGMEDD3) \
                   $(FLEX-INCLUDE) 
 RGMEDD3_CPPFLAGS := $(CPPFLAGS) $(ENABLE_Cxx14) \
-                    -I/usr/local/include $(INCLUDE_GMP_LIB) \
+                    -I/usr/local/include $(INCLUDE_GMP_LIBRARY) \
                     $(RGMEDD3_CFLAGS) -I/usr/local/include 
                     
                     # -D_GLIBCXX_DEBUG=1 /usr/local/lib/libmeddly.a
-RGMEDD3_LDFLAGS := -L/usr/local/lib $(LDFLAGS) $(FLEX-LIB) -lmeddly $(LINK_GMP_LIB)
+RGMEDD3_LDFLAGS := -L/usr/local/lib $(LDFLAGS) $(FLEX-LIB) -lmeddly $(LINK_GMP_LIBRARY)
           #-lmeddly 
 RGMEDD3_SOURCES := WN/SOURCE/SHARED/service.c \
            WN/SOURCE/SHARED/ealloc.c \
